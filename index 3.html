@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>家庭帳本</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="家庭帳本">
+<meta name="theme-color" content="#E8799A">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23E8799A'/%3E%3Ctext x='50' y='65' font-size='50' text-anchor='middle' fill='white'%3E%24%3C/text%3E%3C/svg%3E">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft JhengHei",sans-serif;background:#F9E8ED;-webkit-tap-highlight-color:transparent;}
+:root{
+  --rose:#E8799A;--rose-l:#F9E8ED;--rose-m:#F2C4D0;--rose-d:#C45A7A;
+  --blush:#FDF0F3;--cream:#FFF8F9;--nude:#F5E6EA;
+  --mint:#E8F4F0;--mint-d:#6BAE9A;
+  --lavender:#F0EEF8;--lav-d:#8B7EC8;
+  --text:#5A3040;--text-s:#9A6878;--text-m:#C4A0AE;
+  --white:#FFFFFF;
+}
+.app{max-width:480px;margin:0 auto;background:var(--blush);min-height:100vh;}
+.topbar{background:var(--white);border-bottom:1px solid var(--rose-m);padding:14px 16px;padding-top:calc(14px + env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;}
+.logo{display:flex;align-items:center;gap:8px;}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:var(--rose);}
+.topbar-title{font-size:16px;font-weight:600;color:var(--text);}
+.month-ctrl{display:flex;align-items:center;gap:6px;background:var(--rose-l);border-radius:20px;padding:5px 10px;}
+.mnbtn{background:none;border:none;color:var(--rose-d);cursor:pointer;font-size:18px;padding:0 4px;line-height:1;font-weight:600;}
+.mlabel{font-size:14px;font-weight:600;color:var(--text);min-width:32px;text-align:center;}
+.yr-tag{background:var(--nude);border-radius:10px;padding:3px 8px;font-size:11px;color:var(--text-s);margin-right:4px;}
+.home-pg{display:none;padding:0 0 40px;}.home-pg.active{display:block;}
+.pg{display:none;padding:14px 14px 40px;}.pg.active{display:block;}
+.hero-strip{background:linear-gradient(135deg,#F2C4D0 0%,#E8799A 100%);margin:14px;border-radius:20px;padding:20px 22px;position:relative;overflow:hidden;}
+.hero-strip::after{content:'';position:absolute;right:-20px;top:-20px;width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,.12);}
+.hero-label{font-size:13px;color:rgba(255,255,255,.85);margin-bottom:4px;}
+.hero-val{font-size:28px;font-weight:600;color:var(--white);}
+.hero-sub{font-size:12px;color:rgba(255,255,255,.75);margin-top:4px;}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:0 14px;}
+.mini-card{background:var(--white);border-radius:16px;padding:16px;cursor:pointer;border:1.5px solid transparent;transition:border-color .15s;-webkit-tap-highlight-color:transparent;}
+.mini-card:active{border-color:var(--rose-m);transform:scale(0.98);}
+.mc-icon{font-size:20px;margin-bottom:6px;color:var(--rose);}
+.mc-label{font-size:12px;color:var(--text-s);margin-bottom:3px;}
+.mc-val{font-size:16px;font-weight:600;color:var(--text);}
+.mini-card.amber .mc-icon{color:#C4853A;}.mini-card.amber{background:#FFFBF5;}
+.mini-card.mint .mc-icon{color:var(--mint-d);}.mini-card.mint{background:var(--mint);}
+.mini-card.lav .mc-icon{color:var(--lav-d);}.mini-card.lav{background:var(--lavender);}
+.quick-row{display:flex;gap:8px;padding:0 14px;margin-top:10px;}
+.quick-btn{flex:1;background:var(--white);border:1.5px solid var(--rose-m);border-radius:14px;padding:12px;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-size:13px;color:var(--rose-d);font-weight:600;}
+.quick-btn:active{background:var(--rose-l);}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px;}
+.sec-title{font-size:14px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:6px;}
+.sec-dot{width:6px;height:6px;border-radius:50%;background:var(--rose);display:inline-block;}
+.btn-add{background:var(--rose);border:none;color:var(--white);border-radius:20px;padding:6px 14px;font-size:13px;cursor:pointer;font-weight:600;}
+.btn-add:active{background:var(--rose-d);}
+.back-btn{background:none;border:none;color:var(--rose-d);font-size:14px;cursor:pointer;padding:0 0 12px;display:flex;align-items:center;gap:5px;font-weight:600;}
+.budget-card{background:var(--white);border-radius:16px;padding:13px 15px;margin-bottom:8px;border:1.5px solid var(--rose-m);}
+.budget-card.over{border-color:#E8799A;background:#FDF0F3;}
+.budget-card.ok{border-color:#A8D4C4;background:var(--mint);}
+.bc-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;}
+.bc-name{font-size:14px;font-weight:600;color:var(--text);}
+.bc-badge{font-size:12px;padding:4px 11px;border-radius:20px;font-weight:600;}
+.bc-badge.over{background:var(--rose);color:var(--white);}
+.bc-badge.ok{background:#6BAE9A;color:var(--white);}
+.bc-badge.warn{background:#F4C97A;color:#7A4A00;}
+.bc-badge.none{background:var(--nude);color:var(--text-s);}
+.bc-bar-bg{height:6px;background:var(--nude);border-radius:3px;overflow:hidden;margin-bottom:5px;}
+.bc-bar{height:100%;border-radius:3px;}
+.bc-bar.over{background:var(--rose);}.bc-bar.ok{background:#6BAE9A;}.bc-bar.warn{background:#F4C97A;}
+.bc-foot{display:flex;justify-content:space-between;font-size:12px;color:var(--text-m);}
+.bc-foot .red{color:var(--rose-d);font-weight:600;}.bc-foot .grn{color:var(--mint-d);font-weight:600;}
+.entry-list{display:flex;flex-direction:column;gap:6px;}
+.entry-row{background:var(--white);border-radius:14px;padding:11px 14px;display:flex;align-items:center;gap:10px;}
+.eico{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;}
+.eico.inc{background:var(--mint);color:var(--mint-d);}
+.eico.exp{background:var(--rose-l);color:var(--rose-d);}
+.einfo{flex:1;min-width:0;}
+.ename{font-size:14px;color:var(--text);}
+.esub{font-size:12px;color:var(--text-m);}
+.eamt{font-size:14px;font-weight:600;}
+.eamt.inc{color:var(--mint-d);}.eamt.exp{color:var(--rose-d);}
+.iedit{background:none;border:none;color:var(--text-m);cursor:pointer;font-size:15px;padding:5px;border-radius:8px;}
+.iedit:active{background:var(--nude);color:var(--rose-d);}
+.acct-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+.acct-card{background:var(--white);border-radius:14px;padding:13px 15px;cursor:pointer;border:1.5px solid var(--rose-m);}
+.acct-card:active{border-color:var(--rose);}
+.acct-name{font-size:12px;color:var(--text-m);margin-bottom:4px;}
+.acct-bal{font-size:16px;font-weight:600;color:var(--text);}
+.saving-card{background:var(--white);border-radius:16px;padding:14px 15px;margin-bottom:8px;border:1.5px solid var(--rose-m);}
+.sc-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+.sc-name{font-size:14px;font-weight:600;color:var(--text);flex:1;margin-right:8px;}
+.sc-pct{font-size:13px;font-weight:600;color:var(--rose);}
+.sc-pct.done{color:var(--mint-d);}
+.sc-bar-bg{height:6px;background:var(--nude);border-radius:3px;overflow:hidden;margin-bottom:5px;}
+.sc-fill{height:100%;border-radius:3px;background:var(--rose);}
+.sc-fill.done{background:var(--mint-d);}
+.sc-foot{display:flex;justify-content:space-between;font-size:12px;color:var(--text-m);}
+.sc-actions{display:flex;gap:6px;margin-top:8px;}
+.sc-btn{flex:1;background:none;border:1.5px solid var(--rose-m);border-radius:20px;padding:6px;font-size:12px;color:var(--text-s);cursor:pointer;}
+.sc-btn.del:active{background:var(--rose-l);color:var(--rose-d);border-color:var(--rose);}
+.stk-card{background:var(--white);border-radius:16px;padding:14px 15px;margin-bottom:10px;border:1.5px solid var(--rose-m);}
+.stk-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.stk-name{font-size:15px;font-weight:600;color:var(--text);}
+.stk-row{display:flex;align-items:center;padding:7px 0;border-top:1px dashed var(--nude);}
+.stk-info{flex:1;}
+.stk-sname{font-size:14px;color:var(--text);}
+.stk-sub{font-size:12px;color:var(--text-m);}
+.stk-pnl{font-size:14px;font-weight:600;margin-right:6px;}
+.stk-pnl.pos{color:var(--mint-d);}.stk-pnl.neg{color:var(--rose-d);}
+.ann-mc{background:var(--white);border-radius:14px;padding:10px;border:1.5px solid var(--rose-m);}
+.ann-mc.over{border-color:var(--rose);background:var(--rose-l);}
+.ann-mm{font-size:12px;color:var(--text-m);}
+.ann-net{font-size:15px;font-weight:600;}
+.ann-net.pos{color:var(--mint-d);}.ann-net.neg{color:var(--rose-d);}
+.cat-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px dashed var(--nude);}
+.cat-bar{height:8px;border-radius:4px;background:var(--rose);min-width:4px;}
+.cat-n{font-size:14px;color:var(--text);flex:1;}
+.cat-a{font-size:14px;font-weight:600;color:var(--text);}
+.ss-strip{display:flex;gap:7px;margin-bottom:12px;}
+.ss{flex:1;background:var(--white);border-radius:14px;padding:11px 8px;text-align:center;border:1.5px solid var(--rose-m);}
+.ss-l{font-size:11px;color:var(--text-m);}
+.ss-v{font-size:14px;font-weight:600;margin-top:2px;}
+.ss-v.pos{color:var(--mint-d);}.ss-v.neg{color:var(--rose-d);}.ss-v.nu{color:var(--text);}
+.modal-overlay{position:fixed;inset:0;background:rgba(90,48,64,.35);display:none;align-items:flex-end;justify-content:center;z-index:100;}
+.modal-overlay.show{display:flex;}
+.modal-box{background:var(--white);border-radius:24px 24px 0 0;padding:20px 18px;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;padding-bottom:calc(20px + env(safe-area-inset-bottom));}
+.modal-ttl{font-size:16px;font-weight:600;color:var(--text);margin-bottom:15px;}
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:12px;color:var(--text-m);margin-bottom:5px;font-weight:600;}
+.field input,.field select{width:100%;border:1.5px solid var(--rose-m);border-radius:12px;padding:11px 13px;font-size:16px;background:var(--cream);color:var(--text);}
+.field input:focus,.field select:focus{outline:none;border-color:var(--rose);}
+.mbtns{display:flex;gap:8px;margin-top:14px;}
+.btn-cancel{flex:1;background:none;border:1.5px solid var(--rose-m);border-radius:20px;padding:12px;font-size:14px;color:var(--text-s);cursor:pointer;}
+.btn-save{flex:2;background:var(--rose);border:none;border-radius:20px;padding:12px;font-size:14px;color:var(--white);cursor:pointer;font-weight:600;}
+.btn-del{flex:1;background:none;border:1.5px solid var(--rose);border-radius:20px;padding:12px;font-size:14px;color:var(--rose-d);cursor:pointer;}
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--white);border:1.5px solid #6BAE9A;border-radius:20px;padding:10px 18px;font-size:14px;color:var(--mint-d);text-align:center;display:none;font-weight:600;box-shadow:0 4px 12px rgba(0,0,0,.1);z-index:200;white-space:nowrap;}
+.enc{background:var(--rose-l);border:1.5px solid var(--rose-m);border-radius:20px;padding:11px 16px;font-size:13px;color:var(--rose-d);text-align:center;margin:0 14px 10px;display:none;}
+.empty{text-align:center;padding:32px;font-size:14px;color:var(--text-m);}
+.ny-box{background:var(--lavender);border:1.5px solid var(--lav-d);border-radius:16px;padding:14px 15px;margin-bottom:10px;}
+.ny-ttl{font-size:15px;font-weight:600;color:var(--lav-d);margin-bottom:4px;}
+.ny-desc{font-size:13px;color:#8B7EC8;margin-bottom:10px;opacity:.85;}
+.ny-btn{background:var(--lav-d);border:none;border-radius:20px;padding:12px;font-size:14px;color:var(--white);cursor:pointer;font-weight:600;width:100%;}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="topbar">
+  <div class="logo"><div class="logo-dot"></div><div class="topbar-title" id="page-title">家庭帳本</div></div>
+  <div style="display:flex;align-items:center;gap:6px;">
+    <span class="yr-tag" id="yr-label">2026</span>
+    <div id="mnav" class="month-ctrl">
+      <button class="mnbtn" onclick="chM(-1)">‹</button>
+      <div class="mlabel" id="mlabel">7月</div>
+      <button class="mnbtn" onclick="chM(1)">›</button>
+    </div>
+  </div>
+</div>
+<div id="toast" class="toast"></div>
+
+<div id="pg-home" class="home-pg active">
+  <div id="enc" class="enc"></div>
+  <div class="hero-strip" onclick="go('cash')" style="cursor:pointer;">
+    <div class="hero-label">可動用現金總計</div>
+    <div class="hero-val" id="h-cash">-</div>
+    <div class="hero-sub" id="h-sub">所有帳戶合計 · 點此查看明細</div>
+  </div>
+  <div class="grid2">
+    <div class="mini-card" onclick="go('flow')"><div class="mc-icon">💰</div><div class="mc-label">本月結餘</div><div class="mc-val" id="h-bal">-</div></div>
+    <div class="mini-card mint" onclick="go('saving')"><div class="mc-icon">🐷</div><div class="mc-label">預存計劃</div><div class="mc-val" id="h-sav">-</div></div>
+    <div class="mini-card lav" onclick="go('stock')"><div class="mc-icon">📈</div><div class="mc-label">存股損益</div><div class="mc-val" id="h-stk">-</div></div>
+    <div class="mini-card amber" onclick="go('annual')"><div class="mc-icon">📅</div><div class="mc-label">年度總結</div><div class="mc-val" id="h-yr">2026</div></div>
+  </div>
+  <div class="quick-row">
+    <button class="quick-btn" onclick="openEntry(null,'income')">+ 收入</button>
+    <button class="quick-btn" onclick="openEntry(null,'expense')">+ 支出</button>
+    <button class="quick-btn" onclick="go('bset')">⚙ 預算</button>
+  </div>
+  <div style="padding:0 14px;">
+    <div class="sec-hdr"><div class="sec-title"><span class="sec-dot"></span>本月預算狀況</div></div>
+    <div id="h-budget"></div>
+  </div>
+</div>
+
+<div id="pg-cash" class="pg">
+  <button class="back-btn" onclick="goHome()">‹ 返回</button>
+  <div class="hero-strip" style="margin:0 0 14px;">
+    <div class="hero-label">可動用現金總計</div>
+    <div class="hero-val" id="tc-val">-</div>
+    <div class="hero-sub">點帳戶卡片可編輯</div>
+  </div>
+  <div class="sec-hdr"><div class="sec-title"><span class="sec-dot"></span>各帳戶餘額</div><button class="btn-add" onclick="openAcct(null)">+ 新增</button></div>
+  <div class="acct-grid" id="acct-grid"></div>
+</div>
+
+<div id="pg-flow" class="pg">
+  <button class="back-btn" onclick="goHome()">‹ 返回</button>
+  <div class="ss-strip" id="flow-strip"></div>
+  <div class="sec-hdr"><div class="sec-title"><span class="sec-dot"></span>收入</div><button class="btn-add" onclick="openEntry(null,'income')">+ 新增</button></div>
+  <div class="entry-list" id="inc-list"></div>
+  <div class="sec-hdr" style="margin-top:12px;"><div class="sec-title"><span class="sec-dot"></span>支出 vs 預算</div><button class="btn-add" onclick="openEntry(null,'expense')">+ 新增</button></div>
+  <div id="exp-list"></div>
+</div>
+
+<div id="pg-saving" class="pg">
+  <button class="back-btn" onclick="goHome()">‹ 返回</button>
+  <div class="sec-hdr"><div class="sec-title"><span class="sec-dot"></span>預存 / 大額規劃</div><button class="btn-add" onclick="openSaving(null)">+ 新增</button></div>
+  <div id="sav-list"></div>
+</div>
+
+<div id="pg-stock" class="pg">
+  <button class="back-btn" onclick="goHome()">‹ 返回</button>
+  <div class="sec-hdr"><div class="sec-title"><span class="sec-dot"></span>家庭存股</div><button class="btn-add" onclick="openStock(null,null)">+ 新增</button></div>
+  <div id="stk-list"></div>
+</div>
+
+<div id="pg-annual" class="pg">
+  <button class="back-btn" onclick="goHome()">‹ 返回</button>
+  <div class="ss-strip" id="ann-strip"></div>
+  <div class="sec-hdr"><div class="sec-title"><span class="sec-dot"></span>每月收支</div></div>
+  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-bottom:14px;" id="ann-months"></div>
+  <div class="sec-hdr"><div class="sec-title"><span class="sec-dot"></span>支出類別排行</div></div>
+  <div id="ann-cats"></div>
+  <div class="sec-hdr" style="margin-top:8px;"><div class="sec-title"><span class="sec-dot"></span>超支月份</div></div>
+  <div id="ann-over"></div>
+  <div style="height:1.5px;background:var(--rose-m);border-radius:2px;margin:16px 0;"></div>
+  <button onclick="exportPDF()" style="width:100%;background:var(--rose);border:none;border-radius:20px;padding:13px;font-size:15px;color:var(--white);cursor:pointer;font-weight:600;margin-bottom:14px;">📄 匯出年度報告 PDF</button>
+  <div class="ny-box">
+    <div class="ny-ttl" id="ny-title">開始新的一年</div>
+    <div class="ny-desc">預算和帳戶餘額帶過去，交易清空，舊資料自動備份。</div>
+    <button class="ny-btn" id="ny-btn" onclick="startNewYear()"></button>
+  </div>
+</div>
+
+<div id="pg-bset" class="pg">
+  <button class="back-btn" onclick="goHome()">‹ 返回</button>
+  <div class="sec-hdr"><div class="sec-title"><span class="sec-dot"></span>每月預算設定</div></div>
+  <div id="bset-list"></div>
+  <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">
+    <button onclick="saveBudgets()" style="background:var(--rose);border:none;border-radius:20px;padding:13px;font-size:15px;color:var(--white);cursor:pointer;font-weight:600;">儲存預算</button>
+    <button onclick="addCat()" style="background:none;border:1.5px solid var(--rose);border-radius:20px;padding:11px;font-size:14px;color:var(--rose-d);cursor:pointer;font-weight:600;">+ 新增支出類別</button>
+  </div>
+</div>
+</div>
+
+<div id="m-acct" class="modal-overlay"><div class="modal-box">
+  <div class="modal-ttl" id="m-acct-t">新增帳戶</div>
+  <div class="field"><label>帳戶名稱</label><input id="a-name" placeholder="例：台銀"/></div>
+  <div class="field"><label>目前餘額 (NT$)</label><input id="a-bal" type="number" placeholder="0"/></div>
+  <div class="mbtns"><button class="btn-cancel" onclick="closeM('m-acct')">取消</button><button id="a-del" class="btn-del" onclick="delAcct()" style="display:none">刪除</button><button class="btn-save" onclick="saveAcct()">儲存</button></div>
+</div></div>
+
+<div id="m-entry" class="modal-overlay"><div class="modal-box">
+  <div class="modal-ttl" id="m-entry-t">新增支出</div>
+  <div class="field"><label>類別</label><select id="e-cat"></select></div>
+  <div class="field"><label>金額 (NT$)</label><input id="e-amt" type="number" placeholder="0"/></div>
+  <div class="field"><label>支付方式</label><select id="e-pay"></select></div>
+  <div class="field"><label>備註</label><input id="e-note" placeholder="選填"/></div>
+  <div class="mbtns"><button class="btn-cancel" onclick="closeM('m-entry')">取消</button><button id="e-del" class="btn-del" onclick="delEntry()" style="display:none">刪除</button><button class="btn-save" onclick="saveEntry()">儲存</button></div>
+</div></div>
+
+<div id="m-income" class="modal-overlay"><div class="modal-box">
+  <div class="modal-ttl" id="m-income-t">新增收入</div>
+  <div class="field"><label>名稱</label><input id="i-name" placeholder="例：薪資"/></div>
+  <div class="field"><label>金額 (NT$)</label><input id="i-amt" type="number" placeholder="0"/></div>
+  <div class="field"><label>存入帳戶</label><select id="i-pay"></select></div>
+  <div class="mbtns"><button class="btn-cancel" onclick="closeM('m-income')">取消</button><button id="i-del" class="btn-del" onclick="delIncome()" style="display:none">刪除</button><button class="btn-save" onclick="saveIncome()">儲存</button></div>
+</div></div>
+
+<div id="m-saving" class="modal-overlay"><div class="modal-box">
+  <div class="modal-ttl" id="m-saving-t">新增預存項目</div>
+  <div class="field"><label>項目名稱</label><input id="s-name" placeholder="例：出國旅遊"/></div>
+  <div class="field"><label>目標金額 (NT$)</label><input id="s-target" type="number" placeholder="0"/></div>
+  <div class="field"><label>已存金額 (NT$)</label><input id="s-saved" type="number" placeholder="0"/></div>
+  <div class="field"><label>備註</label><input id="s-note" placeholder="選填"/></div>
+  <div class="mbtns"><button class="btn-cancel" onclick="closeM('m-saving')">取消</button><button id="s-del" class="btn-del" onclick="delSaving()" style="display:none">刪除</button><button class="btn-save" onclick="saveSaving()">儲存</button></div>
+</div></div>
+
+<div id="m-stock" class="modal-overlay"><div class="modal-box">
+  <div class="modal-ttl" id="m-stock-t">新增持股</div>
+  <div class="field"><label>成員</label><select id="st-mem"></select></div>
+  <div class="field"><label>股票名稱/代號</label><input id="st-name" placeholder="例：台積電 2330"/></div>
+  <div class="field"><label>持股張數</label><input id="st-shares" type="number" placeholder="0"/></div>
+  <div class="field"><label>買入成本 (NT$)</label><input id="st-cost" type="number" placeholder="0"/></div>
+  <div class="field"><label>目前市值 (NT$)</label><input id="st-val" type="number" placeholder="0"/></div>
+  <div class="mbtns"><button class="btn-cancel" onclick="closeM('m-stock')">取消</button><button id="st-del" class="btn-del" onclick="delStock()" style="display:none">刪除</button><button class="btn-save" onclick="saveStock()">儲存</button></div>
+</div></div>
+
+<script>
+const MN=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+const PAY=['現金','農會','郵局','玉山','台新','玉山信用卡','台新信用卡','富邦信用卡','聯邦信用卡','中信信用卡'];
+const MEMBERS=['游先生','蕭小姐','哲綸','哲聿'];
+const ENC=['本月所有支出都在預算內，太厲害了！','理財高手！全部類別沒有超支！','本月控制得很好，家庭財務超健康！','預算執行完美，繼續保持！'];
+let cM=6,cY=2026;
+function ld(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
+function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+let accts=ld('hbv4_accts',[{id:1,name:'農會',bal:7632},{id:2,name:'玉山',bal:805},{id:3,name:'郵局',bal:170},{id:4,name:'台新',bal:0},{id:5,name:'Line Pay',bal:1989},{id:6,name:'iPass',bal:1515}]);
+let entries=ld('hbv4_entries',[]);
+let budgets=ld('hbv4_budgets',{'小孩學費':30000,'美食基金':6000,'其他零花錢':4000,'信用貸款':14500,'其他固定支出':5300,'貓咪花費':3300,'游先生餐費':6000,'孝親費':5000,'緊急預備金':4000,'生活雜支':2000,'存股':6200,'水電費':2000});
+let savings=ld('hbv4_savings',[]);
+let stocks=ld('hbv4_stocks',[]);
+let cats=ld('hbv4_cats',['小孩學費','美食基金','其他零花錢','信用貸款','其他固定支出','貓咪花費','游先生餐費','孝親費','緊急預備金','生活雜支','存股','水電費','蛋白粉','ETF','其他花費']);
+let nid=ld('hbv4_nid',1000);
+let eAId=null,eEId=null,eSId=null,eStId=null;
+function pa(){sv('hbv4_accts',accts);sv('hbv4_entries',entries);sv('hbv4_budgets',budgets);sv('hbv4_savings',savings);sv('hbv4_stocks',stocks);sv('hbv4_nid',nid);sv('hbv4_cats',cats);}
+function fmt(n){return '$'+Math.round(n).toLocaleString();}
+function pct(a,b){return b?Math.min(200,Math.round(a/b*100)):0;}
+function closeM(id){document.getElementById(id).classList.remove('show');}
+function showToast(msg,t){const el=document.getElementById('toast');el.textContent=msg;el.style.display='block';el.style.borderColor=t==='w'?'#E8799A':'#6BAE9A';el.style.color=t==='w'?'#C45A7A':'#4A8A76';setTimeout(()=>{el.style.display='none';},2400);}
+function showEnc(){const e=document.getElementById('enc');e.textContent=ENC[Math.floor(Math.random()*ENC.length)];e.style.display='block';setTimeout(()=>{e.style.display='none';},3000);}
+function chM(d){let m=cM+d;if(m<0){m=11;cY--;}else if(m>11){m=0;cY++;}cM=m;document.getElementById('mlabel').textContent=MN[cM];document.getElementById('yr-label').textContent=cY;document.getElementById('h-yr').textContent=cY;renderAll();}
+let curPg='home';
+function go(p){curPg=p;document.querySelectorAll('.pg,.home-pg').forEach(el=>el.classList.remove('active'));document.getElementById('pg-'+p).classList.add('active');const T={home:'家庭帳本',cash:'現金帳戶',flow:'本月收支',saving:'預存計劃',stock:'存股追蹤',annual:'年度總結',bset:'預算設定'};document.getElementById('page-title').textContent=T[p]||'家庭帳本';document.getElementById('mnav').style.display=(p==='home'||p==='flow')?'flex':'none';renderAll();window.scrollTo(0,0);}
+function goHome(){go('home');}
+
+function renderHome(){
+  const tot=accts.reduce((a,x)=>a+x.bal,0);
+  const inc=entries.filter(e=>e.year===cY&&e.month===cM&&e.type==='income').reduce((a,e)=>a+e.amt,0);
+  const exp=entries.filter(e=>e.year===cY&&e.month===cM&&e.type==='expense').reduce((a,e)=>a+e.amt,0);
+  const pnl=stocks.reduce((a,s)=>a+(s.curVal-s.cost),0);
+  document.getElementById('h-cash').textContent=fmt(tot);
+  document.getElementById('h-sub').textContent=accts.length+'個帳戶合計';
+  document.getElementById('h-bal').textContent=fmt(inc-exp);
+  document.getElementById('h-sav').textContent=savings.length+' 項';
+  document.getElementById('h-stk').textContent=(pnl>=0?'+':'')+fmt(pnl);
+  document.getElementById('h-yr').textContent=cY;
+  document.getElementById('ny-title').textContent='開始 '+(cY+1)+' 年度';
+  document.getElementById('ny-btn').textContent='確認開始 '+(cY+1)+' 年度';
+  const mExp=entries.filter(e=>e.year===cY&&e.month===cM&&e.type==='expense');
+  const cT={};mExp.forEach(e=>{cT[e.cat]=(cT[e.cat]||0)+e.amt;});
+  const hasOver=Object.keys(budgets).some(k=>cT[k]&&cT[k]>budgets[k]);
+  if(!hasOver&&Object.keys(cT).length>0)showEnc();
+  document.getElementById('h-budget').innerHTML=Object.keys(budgets).filter(k=>cT[k]).map(k=>{
+    const sp=cT[k],bg=budgets[k],p=pct(sp,bg),ov=sp>bg,wn=p>80&&!ov;
+    return `<div class="budget-card${ov?' over':' ok'}"><div class="bc-hdr"><span class="bc-name">${k}</span><span class="bc-badge${ov?' over':wn?' warn':' ok'}">${ov?'超支 '+fmt(sp-bg):fmt(bg-sp)+' 剩'}</span></div><div class="bc-bar-bg"><div class="bc-bar${ov?' over':wn?' warn':' ok'}" style="width:${Math.min(100,p)}%"></div></div><div class="bc-foot"><span>${fmt(sp)} / ${fmt(bg)}</span><span class="${ov?'red':'grn'}">${p}%</span></div></div>`;
+  }).join('')||`<div class="empty">本月尚無支出記錄</div>`;}
+
+function renderCash(){
+  const tot=accts.reduce((a,x)=>a+x.bal,0);
+  document.getElementById('tc-val').textContent=fmt(tot);
+  document.getElementById('h-cash').textContent=fmt(tot);
+  document.getElementById('acct-grid').innerHTML=accts.map(a=>`<div class="acct-card" onclick="openAcct(${a.id})"><div class="acct-name">${a.name}</div><div class="acct-bal">${fmt(a.bal)}</div></div>`).join('');}
+
+function renderFlow(){
+  const inc=entries.filter(e=>e.year===cY&&e.month===cM&&e.type==='income');
+  const exp=entries.filter(e=>e.year===cY&&e.month===cM&&e.type==='expense');
+  const ti=inc.reduce((a,e)=>a+e.amt,0),te=exp.reduce((a,e)=>a+e.amt,0);
+  document.getElementById('flow-strip').innerHTML=`<div class="ss"><div class="ss-l">收入</div><div class="ss-v pos">+${fmt(ti)}</div></div><div class="ss"><div class="ss-l">支出</div><div class="ss-v neg">-${fmt(te)}</div></div><div class="ss"><div class="ss-l">結餘</div><div class="ss-v nu">${fmt(ti-te)}</div></div>`;
+  document.getElementById('inc-list').innerHTML=inc.length?inc.map(e=>`<div class="entry-row"><div class="eico inc">↓</div><div class="einfo"><div class="ename">${e.name}</div><div class="esub">${e.acct}</div></div><div class="eamt inc">+${fmt(e.amt)}</div><button class="iedit" onclick="openEntry(${e.id},'income')">✎</button></div>`).join(''):`<div class="empty">尚無收入記錄</div>`;
+  const cT={};exp.forEach(e=>{cT[e.cat]=(cT[e.cat]||0)+e.amt;});
+  document.getElementById('exp-list').innerHTML=cats.map(k=>{
+    const sp=cT[k]||0,bg=budgets[k]||0,items=exp.filter(e=>e.cat===k);
+    if(!sp&&!bg)return'';
+    const p=bg?pct(sp,bg):0,ov=bg&&sp>bg,wn=p>80&&!ov;
+    return `<div class="budget-card${ov?' over':sp>0?' ok':''}"><div class="bc-hdr"><span class="bc-name">${k}</span><span class="bc-badge${ov?' over':wn?' warn':bg?' ok':'none'}">${ov?'超支 '+fmt(sp-bg):bg?fmt(bg-sp)+' 剩':'無預算'}</span></div>${bg?`<div class="bc-bar-bg"><div class="bc-bar${ov?' over':wn?' warn':' ok'}" style="width:${Math.min(100,p)}%"></div></div><div class="bc-foot"><span>${fmt(sp)} / ${fmt(bg)}</span><span class="${ov?'red':'grn'}">${p}%</span></div>`:`<div class="bc-foot"><span>實際 ${fmt(sp)}</span></div>`}<div style="margin-top:5px;">${items.map(e=>`<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#C4A0AE;padding:4px 0;border-top:1px dashed #F5E6EA;"><span>${e.acct}${e.note?' · '+e.note:''}</span><span style="display:flex;align-items:center;gap:4px;">${fmt(e.amt)}<button class="iedit" onclick="openEntry(${e.id},'expense')">✎</button></span></div>`).join('')}</div></div>`;
+  }).join('');}
+
+function renderSaving(){document.getElementById('sav-list').innerHTML=savings.map(s=>{const p=Math.min(100,Math.round(s.saved/s.target*100)),done=s.saved>=s.target;return `<div class="saving-card"><div class="sc-hdr"><div class="sc-name">${s.name}${s.note?`<div style="font-size:12px;color:#C4A0AE;font-weight:400;margin-top:2px;">${s.note}</div>`:''}</div><div class="sc-pct${done?' done':''}">${p}%${done?' ✓':''}</div></div><div class="sc-bar-bg"><div class="sc-fill${done?' done':''}" style="width:${p}%"></div></div><div class="sc-foot"><span>已存 ${fmt(s.saved)}</span><span>目標 ${fmt(s.target)}${done?'':' · 差 '+fmt(s.target-s.saved)}</span></div><div class="sc-actions"><button class="sc-btn" onclick="openSaving(${s.id})">編輯/更新</button><button class="sc-btn del" onclick="openSaving(${s.id})">刪除</button></div></div>`;}).join('')||`<div class="empty">尚無預存計劃</div>`;}
+
+function renderStock(){const bm={};MEMBERS.forEach(m=>{bm[m]=stocks.filter(s=>s.member===m);});let tp=0;document.getElementById('stk-list').innerHTML=MEMBERS.map(m=>{const ms=bm[m];if(!ms.length)return'';const mp=ms.reduce((a,s)=>a+(s.curVal-s.cost),0);tp+=mp;return `<div class="stk-card"><div class="stk-hdr"><div class="stk-name">${m}</div><div class="stk-pnl ${mp>=0?'pos':'neg'}">${mp>=0?'+':''}${fmt(mp)}</div></div>${ms.map(s=>`<div class="stk-row"><div class="stk-info"><div class="stk-sname">${s.name}</div><div class="stk-sub">${s.shares}張 · 成本${fmt(s.cost)} · 市值${fmt(s.curVal)}</div></div><div class="stk-pnl ${s.curVal>=s.cost?'pos':'neg'}">${s.curVal>=s.cost?'+':''}${fmt(s.curVal-s.cost)}</div><button class="iedit" onclick="openStock(${s.id},'${m}')">✎</button></div>`).join('')}<button onclick="openStock(null,'${m}')" style="background:none;border:none;color:#E8799A;font-size:13px;cursor:pointer;padding:8px 0;font-weight:600;">+ 新增 ${m} 持股</button></div>`;}).join('')||`<div class="empty">尚無持股記錄</div>`;document.getElementById('h-stk').textContent=(tp>=0?'+':'')+fmt(tp);}
+
+function renderAnnual(){
+  const ye=entries.filter(e=>e.year===cY);
+  const ti=ye.filter(e=>e.type==='income').reduce((a,e)=>a+e.amt,0);
+  const te=ye.filter(e=>e.type==='expense').reduce((a,e)=>a+e.amt,0);
+  document.getElementById('ann-strip').innerHTML=`<div class="ss"><div class="ss-l">年度收入</div><div class="ss-v pos">+${fmt(ti)}</div></div><div class="ss"><div class="ss-l">年度支出</div><div class="ss-v neg">-${fmt(te)}</div></div><div class="ss"><div class="ss-l">年度結餘</div><div class="ss-v nu">${fmt(ti-te)}</div></div>`;
+  const mx=Math.max(...MN.map((_,i)=>{const a=ye.filter(e=>e.month===i&&e.type==='income').reduce((a,e)=>a+e.amt,0);const b=ye.filter(e=>e.month===i&&e.type==='expense').reduce((a,e)=>a+e.amt,0);return Math.max(a,b);}),1);
+  document.getElementById('ann-months').innerHTML=MN.map((ml,mi)=>{const inc=ye.filter(e=>e.month===mi&&e.type==='income').reduce((a,e)=>a+e.amt,0);const exp=ye.filter(e=>e.month===mi&&e.type==='expense').reduce((a,e)=>a+e.amt,0);if(!inc&&!exp)return'';const net=inc-exp;return `<div class="ann-mc${net<0?' over':''}"><div class="ann-mm">${ml}</div><div style="display:flex;height:6px;margin:4px 0;border-radius:3px;overflow:hidden;background:#F5E6EA;"><div style="width:${Math.round(inc/mx*50)}%;background:#6BAE9A;border-radius:3px 0 0 3px;"></div><div style="width:${Math.round(exp/mx*50)}%;background:#E8799A;"></div></div><div class="ann-net ${net>=0?'pos':'neg'}">${net>=0?'+':''}${fmt(net)}</div></div>`;}).join('');
+  const cT={};ye.filter(e=>e.type==='expense').forEach(e=>{cT[e.cat]=(cT[e.cat]||0)+e.amt;});
+  const sorted=Object.entries(cT).sort((a,b)=>b[1]-a[1]);const maxC=sorted[0]?sorted[0][1]:1;
+  const colors=['#E8799A','#F4C97A','#6BAE9A','#AFA9EC','#85B7EB'];
+  document.getElementById('ann-cats').innerHTML=sorted.length?sorted.map(([k,v],i)=>`<div class="cat-row"><div class="cat-bar" style="width:${Math.round(v/maxC*80)}px;background:${colors[i%colors.length]}"></div><div class="cat-n">${k}</div><div class="cat-a">${fmt(v)}</div></div>`).join(''):`<div class="empty">尚無支出</div>`;
+  const ov=MN.map((ml,mi)=>{const exp=ye.filter(e=>e.month===mi&&e.type==='expense');const ct={};exp.forEach(e=>{ct[e.cat]=(ct[e.cat]||0)+e.amt;});const oc=Object.keys(budgets).filter(k=>ct[k]&&ct[k]>budgets[k]);return oc.length?{m:ml,c:oc}:null;}).filter(Boolean);
+  document.getElementById('ann-over').innerHTML=ov.length?ov.map(o=>`<div class="budget-card over" style="margin-bottom:6px;"><div class="bc-name">${o.m}</div><div style="font-size:12px;color:#C45A7A;margin-top:3px;">超支：${o.c.join('、')}</div></div>`).join(''):`<div style="background:var(--mint);border:1.5px solid #6BAE9A;border-radius:16px;padding:13px 15px;font-size:14px;color:#4A8A76;font-weight:600;">全年沒有超支月份！理財達人！</div>`;}
+
+function renderBset(){document.getElementById('bset-list').innerHTML=cats.map(k=>`<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #F5E6EA;"><div style="flex:1;font-size:14px;color:#5A3040;">${k}</div><input type="number" id="bg-${k.replace(/\W/g,'_')}" value="${budgets[k]||0}" style="width:120px;border:1.5px solid #F2C4D0;border-radius:12px;padding:8px 10px;font-size:15px;background:#FFF8F9;color:#5A3040;"/></div>`).join('');}
+
+function renderAll(){renderHome();if(curPg==='cash')renderCash();if(curPg==='flow')renderFlow();if(curPg==='saving')renderSaving();if(curPg==='stock')renderStock();if(curPg==='annual')renderAnnual();if(curPg==='bset')renderBset();}
+
+function saveBudgets(){cats.forEach(k=>{const el=document.getElementById('bg-'+k.replace(/\W/g,'_'));if(el)budgets[k]=parseFloat(el.value)||0;});pa();showToast('預算已儲存');goHome();}
+function addCat(){const n=prompt('新類別名稱：');if(!n||!n.trim())return;const t=n.trim();if(cats.includes(t)){showToast('類別已存在','w');return;}cats.push(t);budgets[t]=0;pa();renderBset();showToast('已新增');}
+
+function openAcct(id){eAId=id;if(id){const a=accts.find(x=>x.id===id);if(a){document.getElementById('a-name').value=a.name;document.getElementById('a-bal').value=a.bal;document.getElementById('m-acct-t').textContent='編輯帳戶';document.getElementById('a-del').style.display='block';}}else{document.getElementById('a-name').value='';document.getElementById('a-bal').value='';document.getElementById('m-acct-t').textContent='新增帳戶';document.getElementById('a-del').style.display='none';}document.getElementById('m-acct').classList.add('show');}
+function saveAcct(){const name=document.getElementById('a-name').value.trim(),bal=parseFloat(document.getElementById('a-bal').value)||0;if(!name){showToast('請填寫名稱','w');return;}if(eAId){const a=accts.find(x=>x.id===eAId);if(a){a.name=name;a.bal=bal;}}else accts.push({id:nid++,name,bal});pa();closeM('m-acct');renderCash();showToast(eAId?'已更新':'已新增');eAId=null;}
+function delAcct(){if(eAId){accts=accts.filter(x=>x.id!==eAId);pa();closeM('m-acct');renderCash();showToast('已刪除');eAId=null;}}
+
+function openEntry(id,type){eEId=id;document.getElementById('e-cat').innerHTML=cats.map(c=>`<option>${c}</option>`).join('');const po=PAY.map(m=>`<option>${m}</option>`).join('');document.getElementById('e-pay').innerHTML=po;document.getElementById('i-pay').innerHTML=po;if(type==='income'){if(id){const e=entries.find(x=>x.id===id);if(e){document.getElementById('i-name').value=e.name;document.getElementById('i-amt').value=e.amt;document.getElementById('i-pay').value=e.acct;document.getElementById('m-income-t').textContent='編輯收入';document.getElementById('i-del').style.display='block';}}else{document.getElementById('i-name').value='';document.getElementById('i-amt').value='';document.getElementById('m-income-t').textContent='新增收入';document.getElementById('i-del').style.display='none';}document.getElementById('m-income').classList.add('show');}else{if(id){const e=entries.find(x=>x.id===id);if(e){document.getElementById('e-cat').value=e.cat;document.getElementById('e-amt').value=e.amt;document.getElementById('e-pay').value=e.acct;document.getElementById('e-note').value=e.note||'';document.getElementById('m-entry-t').textContent='編輯支出';document.getElementById('e-del').style.display='block';}}else{document.getElementById('e-amt').value='';document.getElementById('e-note').value='';document.getElementById('m-entry-t').textContent='新增支出';document.getElementById('e-del').style.display='none';}document.getElementById('m-entry').classList.add('show');}}
+function saveEntry(){const cat=document.getElementById('e-cat').value,amt=parseFloat(document.getElementById('e-amt').value)||0,acct=document.getElementById('e-pay').value,note=document.getElementById('e-note').value.trim();if(!amt){showToast('請填寫金額','w');return;}if(eEId){const e=entries.find(x=>x.id===eEId);if(e){e.cat=cat;e.amt=amt;e.acct=acct;e.note=note;}}else entries.push({id:nid++,year:cY,month:cM,type:'expense',cat,amt,acct,note});pa();closeM('m-entry');renderFlow();renderHome();const sp=entries.filter(e=>e.year===cY&&e.month===cM&&e.type==='expense'&&e.cat===cat).reduce((a,e)=>a+e.amt,0);if(budgets[cat]&&sp>budgets[cat])showToast(cat+' 超支了！','w');else showToast(eEId?'已更新':'已新增');eEId=null;}
+function delEntry(){if(eEId){entries=entries.filter(e=>e.id!==eEId);pa();closeM('m-entry');renderFlow();renderHome();showToast('已刪除');eEId=null;}}
+function saveIncome(){const name=document.getElementById('i-name').value.trim(),amt=parseFloat(document.getElementById('i-amt').value)||0,acct=document.getElementById('i-pay').value;if(!name||!amt){showToast('請填寫名稱和金額','w');return;}if(eEId){const e=entries.find(x=>x.id===eEId);if(e){e.name=name;e.amt=amt;e.acct=acct;}}else entries.push({id:nid++,year:cY,month:cM,type:'income',name,amt,acct,note:''});pa();closeM('m-income');renderFlow();renderHome();showToast(eEId?'已更新':'已新增');eEId=null;}
+function delIncome(){if(eEId){entries=entries.filter(e=>e.id!==eEId);pa();closeM('m-income');renderFlow();renderHome();showToast('已刪除');eEId=null;}}
+function openSaving(id){eSId=id;if(id){const s=savings.find(x=>x.id===id);if(s){document.getElementById('s-name').value=s.name;document.getElementById('s-target').value=s.target;document.getElementById('s-saved').value=s.saved;document.getElementById('s-note').value=s.note||'';document.getElementById('m-saving-t').textContent='編輯預存項目';document.getElementById('s-del').style.display='block';}}else{document.getElementById('s-name').value='';document.getElementById('s-target').value='';document.getElementById('s-saved').value='';document.getElementById('s-note').value='';document.getElementById('m-saving-t').textContent='新增預存項目';document.getElementById('s-del').style.display='none';}document.getElementById('m-saving').classList.add('show');}
+function saveSaving(){const name=document.getElementById('s-name').value.trim(),target=parseFloat(document.getElementById('s-target').value)||0,saved=parseFloat(document.getElementById('s-saved').value)||0,note=document.getElementById('s-note').value.trim();if(!name||!target){showToast('請填寫名稱和目標','w');return;}if(eSId){const s=savings.find(x=>x.id===eSId);if(s){s.name=name;s.target=target;s.saved=saved;s.note=note;}}else savings.push({id:nid++,name,target,saved,note});pa();closeM('m-saving');renderSaving();showToast('已儲存');eSId=null;}
+function delSaving(){if(eSId){savings=savings.filter(s=>s.id!==eSId);pa();closeM('m-saving');renderSaving();showToast('已刪除');eSId=null;}}
+function openStock(id,member){eStId=id;document.getElementById('st-mem').innerHTML=MEMBERS.map(m=>`<option${m===member?' selected':''}>${m}</option>`).join('');if(id){const s=stocks.find(x=>x.id===id);if(s){document.getElementById('st-name').value=s.name;document.getElementById('st-shares').value=s.shares;document.getElementById('st-cost').value=s.cost;document.getElementById('st-val').value=s.curVal;document.getElementById('m-stock-t').textContent='編輯持股';document.getElementById('st-del').style.display='block';}}else{document.getElementById('st-name').value='';document.getElementById('st-shares').value='';document.getElementById('st-cost').value='';document.getElementById('st-val').value='';document.getElementById('m-stock-t').textContent='新增持股';document.getElementById('st-del').style.display='none';}document.getElementById('m-stock').classList.add('show');}
+function saveStock(){const member=document.getElementById('st-mem').value,name=document.getElementById('st-name').value.trim(),shares=parseFloat(document.getElementById('st-shares').value)||0,cost=parseFloat(document.getElementById('st-cost').value)||0,curVal=parseFloat(document.getElementById('st-val').value)||0;if(!name){showToast('請填寫名稱','w');return;}if(eStId){const s=stocks.find(x=>x.id===eStId);if(s){s.member=member;s.name=name;s.shares=shares;s.cost=cost;s.curVal=curVal;}}else stocks.push({id:nid++,member,name,shares,cost,curVal});pa();closeM('m-stock');renderStock();showToast('已儲存');eStId=null;}
+function delStock(){if(eStId){stocks=stocks.filter(s=>s.id!==eStId);pa();closeM('m-stock');renderStock();showToast('已刪除');eStId=null;}}
+function startNewYear(){const ny=cY+1;sv('hbv4_backup_'+cY,JSON.stringify({entries,accts,budgets,savings,stocks}));entries=[];cY=ny;cM=0;document.getElementById('mlabel').textContent=MN[0];document.getElementById('yr-label').textContent=ny;pa();goHome();showToast(ny+'年度開始！舊資料已備份');}
+function exportPDF(){const ye=entries.filter(e=>e.year===cY);const ti=ye.filter(e=>e.type==='income').reduce((a,e)=>a+e.amt,0);const te=ye.filter(e=>e.type==='expense').reduce((a,e)=>a+e.amt,0);const cT={};ye.filter(e=>e.type==='expense').forEach(e=>{cT[e.cat]=(cT[e.cat]||0)+e.amt;});const mr=MN.map((ml,mi)=>{const inc=ye.filter(e=>e.month===mi&&e.type==='income').reduce((a,e)=>a+e.amt,0);const exp=ye.filter(e=>e.month===mi&&e.type==='expense').reduce((a,e)=>a+e.amt,0);if(!inc&&!exp)return'';return`<tr><td>${ml}</td><td style="color:#4A8A76">+${fmt(inc)}</td><td style="color:#C45A7A">-${fmt(exp)}</td><td style="color:${inc-exp>=0?'#4A8A76':'#C45A7A'};font-weight:600">${fmt(inc-exp)}</td></tr>`;}).join('');const cr=Object.entries(cT).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${k}</td><td>${fmt(budgets[k]||0)}</td><td style="font-weight:600">${fmt(v)}</td><td style="color:${v>(budgets[k]||0)?'#C45A7A':'#4A8A76'}">${v>(budgets[k]||0)?'超支 '+fmt(v-(budgets[k]||0)):'剩 '+fmt((budgets[k]||0)-v)}</td></tr>`).join('');const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${cY}年度家庭財務報告</title><style>body{font-family:sans-serif;padding:32px;color:#5A3040;max-width:700px;margin:0 auto;background:#FFF8F9}h1{font-size:22px;color:#E8799A}h2{font-size:16px;margin:20px 0 8px;border-bottom:2px solid #F2C4D0;padding-bottom:4px;color:#C45A7A}.sum{display:flex;gap:16px;margin:12px 0}.sb{flex:1;border-radius:12px;padding:12px;text-align:center}.sl{font-size:12px;color:#9A6878}.sv{font-size:18px;font-weight:bold;margin-top:4px}table{width:100%;border-collapse:collapse;font-size:14px}th{background:#E8799A;color:#fff;padding:7px 8px;text-align:left}td{padding:6px 8px;border-bottom:1px solid #F5E6EA}</style></head><body><h1>家庭帳本 ${cY} 年度報告</h1><p style="color:#9A6878;font-size:13px">匯出：${new Date().toLocaleDateString('zh-TW')}</p><div class="sum"><div class="sb" style="background:#E8F4F0"><div class="sl">年度總收入</div><div class="sv" style="color:#4A8A76">+${fmt(ti)}</div></div><div class="sb" style="background:#F9E8ED"><div class="sl">年度總支出</div><div class="sv" style="color:#C45A7A">-${fmt(te)}</div></div><div class="sb" style="background:#F5E6EA"><div class="sl">年度結餘</div><div class="sv" style="color:#5A3040">${fmt(ti-te)}</div></div></div><h2>每月收支</h2><table><tr><th>月份</th><th>收入</th><th>支出</th><th>結餘</th></tr>${mr}</table><h2>各類支出 vs 預算</h2><table><tr><th>類別</th><th>預算</th><th>實際</th><th>差額</th></tr>${cr}</table></body></html>`;const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));a.download=cY+'年度財務報告.html';a.click();showToast('已匯出！');}
+renderAll();
+</script>
+</body>
+</html>
