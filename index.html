@@ -394,8 +394,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft Jheng
 <div id="m-cc" class="modal-overlay"><div class="modal-box">
   <div class="modal-ttl" id="m-cc-t">新增信用卡帳單</div>
   <div class="field"><label>信用卡名稱</label><select id="cc-name" onchange="fillCCCarryover()"><option>聯邦信用卡</option><option>玉山信用卡</option><option>台新信用卡</option><option>富邦信用卡</option><option>中國信託信用卡</option></select></div>
-  <div class="field"><label>本期新增消費 (NT$)</label><input id="cc-total" type="number" placeholder="0" oninput="updateCCPreview()"/></div>
-  <div class="field"><label>上期未繳（自動帶入，可修正）</label><input id="cc-carryover" type="number" placeholder="0" oninput="updateCCPreview()"/></div>
+  <div class="field"><label>本期新增消費 (NT$)</label><input id="cc-total" type="number" placeholder="0" oninput="syncCCPaidCheck();updateCCPreview()"/></div>
+  <div class="field"><label>上期未繳（自動帶入，可修正）</label><input id="cc-carryover" type="number" placeholder="0" oninput="syncCCPaidCheck();updateCCPreview()"/></div>
   <div class="field"><label>本期實際繳款</label><input id="cc-paid" type="number" placeholder="0" oninput="syncCCPaidCheck();updateCCPreview()"/></div>
   <div class="field"><label>繳款日期（選填）</label><input id="cc-paid-date" type="date"/></div>
   <div class="field" style="display:flex;align-items:center;gap:8px;"><input id="cc-paid-full" type="checkbox" onchange="setCCPaidFull(this.checked)" style="width:20px;height:20px;accent-color:var(--mint-d);"><label for="cc-paid-full" style="margin:0;">本期已全部繳清</label></div>
@@ -833,7 +833,8 @@ function fillCCCarryover(){
   updateCCPreview();
 }
 function setCCPaidFull(checked){
-  if(checked){const total=parseFloat(document.getElementById('cc-total').value)||0,carry=parseFloat(document.getElementById('cc-carryover').value)||0;document.getElementById('cc-paid').value=Math.max(0,total+carry);}
+  const total=parseFloat(document.getElementById('cc-total').value)||0,carry=parseFloat(document.getElementById('cc-carryover').value)||0;
+  document.getElementById('cc-paid').value=checked?Math.max(0,total+carry):0;
   updateCCPreview();
 }
 function syncCCPaidCheck(){
