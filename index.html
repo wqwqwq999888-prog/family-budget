@@ -41,6 +41,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft Jheng
 .hero-val{font-size:28px;font-weight:600;color:#6B2A2C;}
 .hero-sub{font-size:12px;color:rgba(107,42,44,.6);margin-top:4px;}
 .quick-row{display:flex;gap:8px;padding:0 14px;margin:10px 0 4px;}
+.quick-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:0 14px;margin:10px 0 4px;}
 .quick-btn{flex:1;background:var(--white);border:1.5px solid var(--rose-m);border-radius:14px;padding:11px 6px;display:flex;align-items:center;justify-content:center;gap:5px;cursor:pointer;font-size:12px;color:var(--rose-d);font-weight:600;}
 .quick-btn:active{background:var(--rose-l);}
 .month-sum-strip{display:flex;gap:7px;padding:0 14px;margin:10px 0 4px;}
@@ -153,15 +154,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft Jheng
 .cc-name{font-size:14px;font-weight:600;color:#453560;}
 .cc-total{font-size:15px;font-weight:600;color:#453560;}
 .cc-item{display:flex;justify-content:space-between;font-size:12px;color:#7A6A98;padding:4px 0;border-top:1px dashed #DCD5EE;}
-.modal-overlay{position:fixed;inset:0;background:rgba(90,48,64,.35);display:none;align-items:flex-end;justify-content:center;z-index:100;}
+.cc-summary{background:rgba(255,255,255,.42);border:1px solid #DDD5EE;border-radius:12px;padding:5px 10px;margin:9px 0 10px;}
+.cc-summary .cc-item:first-child{border-top:none;}
+.cc-detail-title{font-size:11px;font-weight:600;color:#8E7CAC;margin:2px 0 4px;display:flex;align-items:center;gap:6px;}
+.cc-detail-title::after{content:'';height:1px;background:#DCD5EE;flex:1;}
+.modal-overlay{position:fixed;inset:0;background:rgba(90,48,64,.35);display:none;align-items:flex-end;justify-content:center;z-index:100;overscroll-behavior:contain;}
 .modal-overlay.show{display:flex;}
-.modal-box{background:var(--white);border-radius:24px 24px 0 0;padding:20px 18px;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;padding-bottom:calc(20px + env(safe-area-inset-bottom));}
-.modal-ttl{font-size:16px;font-weight:600;color:var(--text);margin-bottom:15px;}
+.modal-box{background:var(--white);border-radius:24px 24px 0 0;padding:0 18px;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-bottom:calc(8px + env(safe-area-inset-bottom));}
+.modal-ttl{font-size:16px;font-weight:600;color:var(--text);margin:0 -2px 15px;padding:20px 2px 12px;position:sticky;top:0;background:var(--white);z-index:3;border-bottom:1px solid var(--nude);}
+body:has(.modal-overlay.show){overflow:hidden;}
 .field{margin-bottom:12px;}
 .field label{display:block;font-size:12px;color:var(--text-m);margin-bottom:5px;font-weight:600;}
 .field input,.field select{width:100%;border:1.5px solid var(--rose-m);border-radius:12px;padding:11px 13px;font-size:16px;background:var(--cream);color:var(--text);}
 .field input:focus,.field select:focus{outline:none;border-color:var(--rose);}
-.mbtns{display:flex;gap:8px;margin-top:14px;}
+.mbtns{display:flex;gap:8px;margin:14px -2px 0;padding:10px 2px calc(10px + env(safe-area-inset-bottom));position:sticky;bottom:0;background:var(--white);z-index:3;border-top:1px solid var(--nude);}
+.wealth-choice{background:var(--white);border:1.5px solid var(--rose-m);border-radius:16px;padding:15px;cursor:pointer;}
+.wealth-choice-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.wealth-choice-sub{font-size:12px;color:var(--text-s);line-height:1.5;}
 .btn-cancel{flex:1;background:none;border:1.5px solid var(--rose-m);border-radius:20px;padding:12px;font-size:14px;color:var(--text-s);cursor:pointer;}
 .btn-save{flex:2;background:var(--rose);border:none;border-radius:20px;padding:12px;font-size:14px;color:var(--white);cursor:pointer;font-weight:600;}
 .btn-del{flex:1;background:none;border:1.5px solid var(--rose);border-radius:20px;padding:12px;font-size:14px;color:var(--rose-d);cursor:pointer;}
@@ -216,18 +225,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft Jheng
     <div class="hero-val" id="h-cash">-</div>
     <div class="hero-sub" id="h-sub">所有帳戶合計 · 點此查看明細</div>
   </div>
-  <div class="quick-row">
+  <div style="padding:0 14px;margin-top:10px;"><div class="sec-title"><span class="sec-dot"></span>新增</div></div>
+  <div class="quick-grid">
     <button class="quick-btn" onclick="openEntry(null,'income')"><i class="ti ti-plus" aria-hidden="true"></i>收入</button>
     <button class="quick-btn" onclick="openEntry(null,'expense')"><i class="ti ti-plus" aria-hidden="true"></i>支出</button>
-    <button class="quick-btn" onclick="openCC(null)"><i class="ti ti-plus" aria-hidden="true"></i>信用卡</button>
+    <button class="quick-btn" onclick="openCC(null)"><i class="ti ti-plus" aria-hidden="true"></i>信用卡帳單</button>
+    <button class="quick-btn" onclick="openWealthMove(null)"><i class="ti ti-plus" aria-hidden="true"></i>理財儲蓄</button>
   </div>
   <div class="month-sum-strip" id="home-month-strip"></div>
-  <div class="grid2">
-    <div class="mini-card" onclick="go('flow')"><div class="mc-icon"><i class="ti ti-wallet" aria-hidden="true"></i></div><div class="mc-label">本月結餘</div><div class="mc-val" id="h-bal">-</div></div>
-    <div class="mini-card mint" onclick="go('stock')"><div class="mc-icon"><i class="ti ti-chart-line" aria-hidden="true"></i></div><div class="mc-label">存股損益</div><div class="mc-val" id="h-stk">-</div></div>
-  </div>
   <div class="grid3">
-    <div class="mini-card pink2 sm" onclick="go('saving')"><div class="mc-icon"><i class="ti ti-pig-money" aria-hidden="true"></i></div><div class="mc-label">預存計畫</div><div class="mc-val" id="h-sav">-</div></div>
+    <div class="mini-card mint sm" onclick="go('wealth')"><div class="mc-icon"><i class="ti ti-pig-money" aria-hidden="true"></i></div><div class="mc-label">理財儲蓄</div><div class="mc-val" id="h-sav">查看</div></div>
     <div class="mini-card lav sm" onclick="go('bigitems')"><div class="mc-icon"><i class="ti ti-diamond" aria-hidden="true"></i></div><div class="mc-label">重大收支</div><div class="mc-val">查看</div></div>
     <div class="mini-card amber sm" onclick="go('annual')"><div class="mc-icon"><i class="ti ti-calendar-stats" aria-hidden="true"></i></div><div class="mc-label">年度總結</div><div class="mc-val" id="h-yr">2026</div></div>
   </div>
@@ -259,17 +266,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft Jheng
   <div id="exp-list"></div>
 </div>
 
-<div id="pg-saving" class="pg">
+<div id="pg-wealth" class="pg">
   <button class="back-btn" onclick="goHome()">‹ 返回</button>
-  <div class="hint" style="margin-bottom:10px;">預存計劃會持續保留，不分月份，除非你自己修改或刪除。</div>
-  <div class="sec-hdr"><div class="sec-title"><span class="sec-dot"></span>預存計劃</div><button class="btn-add" onclick="openSaving(null)">+ 新增</button></div>
+  <div class="ss-strip" id="wealth-strip"></div>
+  <button onclick="openWealthMove(null)" style="width:100%;background:var(--mint-d);border:none;border-radius:20px;padding:12px;font-size:14px;color:white;cursor:pointer;font-weight:600;margin-bottom:12px;">+ 新增理財儲蓄紀錄</button>
+  <div class="grid2" style="padding:0;margin:0 0 12px;">
+    <div class="wealth-choice" onclick="document.getElementById('wealth-saving-section').scrollIntoView({behavior:'smooth'})"><div class="wealth-choice-title">預存計畫</div><div class="wealth-choice-sub">為年度支出先準備資金，追蹤目標與存放位置。</div></div>
+    <div class="wealth-choice" onclick="document.getElementById('wealth-stock-section').scrollIntoView({behavior:'smooth'})"><div class="wealth-choice-title">存股資產</div><div class="wealth-choice-sub">家庭成員持股、投入成本、市值與損益。</div></div>
+  </div>
+  <div class="sec-hdr"><div class="sec-title"><span class="sec-dot"></span>本月存入紀錄</div></div>
+  <div id="wealth-move-list"></div>
+  <div id="wealth-saving-section" class="sec-hdr"><div class="sec-title"><span class="sec-dot"></span>預存計畫</div><button class="btn-add" onclick="openSaving(null)">+ 新增計畫</button></div>
+  <div class="hint" style="margin-bottom:8px;">為一年內可能發生的費用先存錢；移動資金不列入生活支出。</div>
   <div id="sav-list"></div>
-</div>
-
-<div id="pg-stock" class="pg">
-  <button class="back-btn" onclick="goHome()">‹ 返回</button>
-  <div class="hint" style="margin-bottom:10px;">存股紀錄會持續保留，不分月份，你可以不定時更新市值。</div>
-  <div class="sec-hdr"><div class="sec-title"><span class="sec-dot"></span>家庭存股</div><button class="btn-add" onclick="openStock(null,null)">+ 新增</button></div>
+  <div id="wealth-stock-section" class="sec-hdr" style="margin-top:18px;"><div class="sec-title"><span class="sec-dot"></span>家庭存股資產</div><button class="btn-add" onclick="openStock(null,null)">+ 新增持股</button></div>
+  <div class="hint" style="margin-bottom:8px;">記錄你與孩子的投入成本、目前市值及損益。</div>
   <div id="stk-list"></div>
 </div>
 
@@ -351,7 +362,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft Jheng
   <div class="modal-ttl" id="m-saving-t">新增預存項目</div>
   <div class="field"><label>項目名稱</label><input id="s-name" placeholder="例：出國旅遊"/></div>
   <div class="field"><label>目標金額 (NT$)</label><input id="s-target" type="number" placeholder="0"/></div>
-  <div class="field"><label>已存金額 (NT$)</label><input id="s-saved" type="number" placeholder="0"/></div>
+  <div class="field"><label>初始金額 (NT$)</label><input id="s-saved" type="number" placeholder="0"/><div style="font-size:12px;color:var(--text-m);margin-top:5px;">建立計畫時原本已有的金額；之後請用「新增一筆」累加。</div></div>
   <div class="field">
     <label>存放在哪裡</label>
     <div style="display:flex;gap:6px;">
@@ -363,6 +374,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft Jheng
   <div class="mbtns"><button class="btn-cancel" onclick="closeM('m-saving')">取消</button><button id="s-del" class="btn-del" onclick="delSaving()" style="display:none">刪除</button><button class="btn-save" onclick="saveSaving()">儲存</button></div>
 </div></div>
 
+<div id="m-saving-detail" class="modal-overlay"><div class="modal-box">
+  <div class="modal-ttl" id="m-saving-detail-t">預存計畫明細</div>
+  <div id="s-detail-summary"></div>
+  <div class="sec-hdr"><div class="sec-title"><span class="sec-dot"></span>每月存入明細</div><button class="btn-add" id="s-detail-add">+ 新增一筆</button></div>
+  <div id="s-detail-list"></div>
+  <div class="mbtns"><button class="btn-cancel" onclick="closeM('m-saving-detail')">關閉</button><button class="btn-save" id="s-detail-edit">編輯計畫</button></div>
+</div></div>
+
 <div id="m-stock" class="modal-overlay"><div class="modal-box">
   <div class="modal-ttl" id="m-stock-t">新增持股</div>
   <div class="field"><label>成員</label><select id="st-mem"></select></div>
@@ -371,6 +390,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft Jheng
   <div class="field"><label>買入成本 (NT$)</label><input id="st-cost" type="number" placeholder="0"/></div>
   <div class="field"><label>目前市值 (NT$)</label><input id="st-val" type="number" placeholder="0"/></div>
   <div class="mbtns"><button class="btn-cancel" onclick="closeM('m-stock')">取消</button><button id="st-del" class="btn-del" onclick="delStock()" style="display:none">刪除</button><button class="btn-save" onclick="saveStock()">儲存</button></div>
+</div></div>
+
+<div id="m-wealth" class="modal-overlay"><div class="modal-box">
+  <div class="modal-ttl" id="m-wealth-t">新增理財儲蓄</div>
+  <div class="field"><label>類型</label><select id="w-kind" onchange="refreshWealthMoveOptions()"><option value="saving">預存計畫</option><option value="stock">存股投入</option></select></div>
+  <div class="field"><label>存入項目</label><div style="display:flex;gap:6px;"><select id="w-target" onchange="syncWealthDestination();updateWealthPreview()" style="flex:1;"></select><button type="button" class="cc-newcat-btn" onclick="promptNewWealthTarget()" title="新增項目">+</button></div></div>
+  <div class="field"><label>存放位置</label><select id="w-to"></select></div>
+  <div class="field"><label>金額 (NT$)</label><input id="w-amt" type="number" placeholder="0" oninput="updateWealthPreview()"/></div>
+  <div class="field"><label>日期</label><input id="w-date" type="date"/></div>
+  <div class="field"><label>備註</label><input id="w-note" placeholder="選填"/></div>
+  <div class="hint" id="w-preview" style="background:var(--mint);border-radius:12px;padding:10px 12px;margin-bottom:8px;"></div>
+  <div class="hint">理財儲蓄是資金移動，不會重複列入生活支出。帳戶餘額仍由你在「現金帳戶」中確認與調整。</div>
+  <div class="mbtns"><button class="btn-cancel" onclick="closeM('m-wealth')">取消</button><button id="w-del" class="btn-del" onclick="delWealthMove()" style="display:none">刪除</button><button class="btn-save" onclick="saveWealthMove()">儲存</button></div>
 </div></div>
 
 <div id="m-big" class="modal-overlay"><div class="modal-box">
@@ -481,9 +513,28 @@ let ccbills=ld('hbv4_ccbills',[]);
 let cats=ld('hbv4_cats',['小孩學費','美食基金','其他零花錢','信用貸款','其他固定支出','貓咪花費','游先生餐費','孝親費','緊急預備金','生活雜支','存股','水電費','蛋白粉','ETF','其他花費']);
 let autoIncome=ld('hbv4_autoinc',[{id:1,name:'游先生薪資',amt:40000,acct:'現金'},{id:2,name:'蕭小姐薪資',amt:38000,acct:'農會'},{id:3,name:'育兒津貼',amt:11000,acct:'郵局'}]);
 let savingWhereOptions=ld('hbv4_savewhere',['現金','農會','郵局','玉山','台新','存股-0050']);
+let wealthMoves=ld('hbv4_wealthmoves',[]);
 let nid=ld('hbv4_nid',1000);
-let eAId=null,eEId=null,eSId=null,eStId=null,eBId=null,eAiId=null,eCCId=null;
-function pa(){sv('hbv4_accts',accts);sv('hbv4_entries',entries);sv('hbv4_budgets',budgets);sv('hbv4_budgethist',budgetHistory);sv('hbv4_savings',savings);sv('hbv4_stocks',stocks);sv('hbv4_nid',nid);sv('hbv4_cats',cats);sv('hbv4_bigitems',bigitems);sv('hbv4_ccbills',ccbills);sv('hbv4_autoinc',autoIncome);sv('hbv4_savewhere',savingWhereOptions);}
+let eAId=null,eEId=null,eSId=null,eStId=null,eBId=null,eAiId=null,eCCId=null,eWId=null;
+function pa(){sv('hbv4_accts',accts);sv('hbv4_entries',entries);sv('hbv4_budgets',budgets);sv('hbv4_budgethist',budgetHistory);sv('hbv4_savings',savings);sv('hbv4_stocks',stocks);sv('hbv4_nid',nid);sv('hbv4_cats',cats);sv('hbv4_bigitems',bigitems);sv('hbv4_ccbills',ccbills);sv('hbv4_autoinc',autoIncome);sv('hbv4_savewhere',savingWhereOptions);sv('hbv4_wealthmoves',wealthMoves);}
+function migrateETFCategory(){
+  if(!cats.includes('ETF'))return;
+  entries.forEach(e=>{if(e.cat==='ETF')e.cat='存股';});
+  ccbills.forEach(c=>{(c.items||[]).forEach(it=>{if(it.cat==='ETF')it.cat='存股';});if(c.restCat==='ETF')c.restCat='存股';});
+  budgetHistory.forEach(h=>{if(h.budgets&&Object.prototype.hasOwnProperty.call(h.budgets,'ETF')){if(!h.budgets['存股'])h.budgets['存股']=h.budgets.ETF;delete h.budgets.ETF;}});
+  if(!budgets['存股']&&budgets.ETF)budgets['存股']=budgets.ETF;delete budgets.ETF;
+  cats=cats.filter(c=>c!=='ETF');if(!cats.includes('存股'))cats.push('存股');pa();
+}
+function savingMoveTotal(id){return wealthMoves.filter(w=>w.kind==='saving'&&Number(w.targetId)===Number(id)).reduce((sum,w)=>sum+(Number(w.amt)||0),0);}
+function migrateSavingInitialAmounts(){
+  let changed=false;
+  savings.forEach(s=>{
+    if(s.initialAmount===undefined){s.initialAmount=Math.max(0,(Number(s.saved)||0)-savingMoveTotal(s.id));changed=true;}
+    const total=Math.max(0,(Number(s.initialAmount)||0)+savingMoveTotal(s.id));
+    if(Number(s.saved)!==total){s.saved=total;changed=true;}
+  });
+  if(changed)pa();
+}
 function ymKey(y,m){return y*100+m;}
 function getEffectiveBudgets(year,month){
   const targetKey=ymKey(year,month);
@@ -519,7 +570,7 @@ function ensureAutoIncome(y,m){
 function rememberView(){sv('hbv4_lastview',{year:cY,month:cM});}
 function chM(d){let m=cM+d;if(m<0){m=11;cY--;}else if(m>11){m=0;cY++;}cM=m;rememberView();document.getElementById('mlabel').textContent=MN[cM];document.getElementById('yr-label').textContent=cY;document.getElementById('h-yr').textContent=cY;ensureAutoIncome(cY,cM);renderAll();}
 let curPg='home';
-function go(p){curPg=p;document.querySelectorAll('.pg,.home-pg').forEach(el=>el.classList.remove('active'));document.getElementById('pg-'+p).classList.add('active');const T={home:'家庭帳本',cash:'現金帳戶',flow:'本月收支',saving:'預存計劃',stock:'存股追蹤',annual:'年度總結',bset:'預算設定',bigitems:'年度重大收支'};document.getElementById('page-title').textContent=T[p]||'家庭帳本';document.getElementById('mnav').style.display=(p==='home'||p==='flow')?'flex':'none';renderAll();window.scrollTo(0,0);}
+function go(p){curPg=p;document.querySelectorAll('.pg,.home-pg').forEach(el=>el.classList.remove('active'));document.getElementById('pg-'+p).classList.add('active');const T={home:'家庭帳本',cash:'現金帳戶',flow:'本月收支',wealth:'理財儲蓄',annual:'年度總結',bset:'預算設定',bigitems:'年度重大收支'};document.getElementById('page-title').textContent=T[p]||'家庭帳本';document.getElementById('mnav').style.display=(p==='home'||p==='flow'||p==='wealth')?'flex':'none';renderAll();window.scrollTo(0,0);}
 function goHome(){go('home');}
 
 function getCatTotals(year,month){
@@ -553,17 +604,15 @@ function renderHome(){
   const inc=entries.filter(e=>e.year===cY&&e.month===cM&&e.type==='income').reduce((a,e)=>a+e.amt,0);
   const cT=getCatTotals(cY,cM);
   const exp=Object.values(cT).reduce((a,v)=>a+v,0);
-  const pnl=stocks.reduce((a,s)=>a+(s.curVal-s.cost),0);
+  const monthSaving=wealthMoves.filter(w=>{const d=new Date((w.date||'')+'T00:00:00');return d.getFullYear()===cY&&d.getMonth()===cM;}).reduce((a,w)=>a+w.amt,0);
   document.getElementById('h-cash').textContent=fmt(tot);
   document.getElementById('h-sub').textContent=accts.length+'個帳戶合計 · 點此查看明細';
-  document.getElementById('h-bal').textContent=fmt(inc-exp);
-  document.getElementById('h-sav').textContent=savings.length+' 項';
-  document.getElementById('h-stk').textContent=(pnl>=0?'+':'')+fmt(pnl);
+  document.getElementById('h-sav').textContent=fmt(monthSaving);
   document.getElementById('h-yr').textContent=cY;
   document.getElementById('ny-title').textContent='開始 '+(cY+1)+' 年度';
   document.getElementById('ny-btn').textContent='確認開始 '+(cY+1)+' 年度';
 
-  document.getElementById('home-month-strip').innerHTML=`<div class="ss"><div class="ss-l">本月收入</div><div class="ss-v pos">+${fmt(inc)}</div></div><div class="ss"><div class="ss-l">本月支出</div><div class="ss-v neg">-${fmt(exp)}</div></div><div class="ss"><div class="ss-l">本月結餘</div><div class="ss-v nu">${fmt(inc-exp)}</div></div>`;
+  document.getElementById('home-month-strip').innerHTML=`<div class="ss" onclick="go('flow')" style="cursor:pointer;"><div class="ss-l">本月收入</div><div class="ss-v pos">+${fmt(inc)}</div></div><div class="ss" onclick="go('flow')" style="cursor:pointer;"><div class="ss-l">本月支出</div><div class="ss-v neg">-${fmt(exp)}</div></div><div class="ss" onclick="go('wealth')" style="cursor:pointer;"><div class="ss-l">本月儲蓄</div><div class="ss-v pos">+${fmt(monthSaving)}</div></div>`;
 
   
   const mBudgets=getEffectiveBudgets(cY,cM);
@@ -600,6 +649,7 @@ function ccStatus(cc){const left=ccOutstanding(cc);if(left<=0)return'已繳清';
 
 function renderFlow(){
   ensureAutoIncome(cY,cM);
+  recalculateTrackedCCCarryovers();
   const inc=entries.filter(e=>e.year===cY&&e.month===cM&&e.type==='income');
   const ccThisMonth=ccbills.filter(c=>c.year===cY&&c.month===cM);
   const cT=getCatTotals(cY,cM);
@@ -613,10 +663,12 @@ function renderFlow(){
     const due=ccDue(c),paid=ccPaid(c),left=ccOutstanding(c),status=ccStatus(c),payments=ccPayments(c);
     return `<div class="cc-card" onclick="openCC(${c.id})">
       <div class="cc-hdr"><div class="cc-name"><i class="ti ti-credit-card" style="font-size:15px;vertical-align:-2px;margin-right:5px;color:#7A5AA8;" aria-hidden="true"></i>${c.name}<div style="font-size:11px;margin-top:3px;color:${left>0?'var(--rose-d)':'var(--mint-d)'};">${status}${payments.length?' · '+payments.length+'筆繳款':''}</div></div><div class="cc-total">應繳 ${fmt(due)}</div></div>
-      ${ccCarryover(c)>0?`<div class="cc-item"><span>上期未繳（不重複計入支出）</span><span>${fmt(ccCarryover(c))}</span></div>`:''}
-      <div class="cc-item"><span>本期新增消費</span><span>${fmt(c.total)}</span></div>
-      <div class="cc-item"><span>本期已繳／剩餘未繳</span><span>${fmt(paid)} ／ ${fmt(left)}</span></div>
-      ${payments.map(p=>`<div class="cc-item"><span>繳款${p.date?' · '+p.date:''}</span><span>${fmt(p.amt)}</span></div>`).join('')}
+      <div class="cc-summary">
+        ${ccCarryover(c)>0?`<div class="cc-item"><span>上期未繳</span><span>${fmt(ccCarryover(c))}</span></div>`:''}
+        <div class="cc-item"><span>本期新增消費</span><span>${fmt(c.total)}</span></div>
+        <div class="cc-item"><span>本期已繳／剩餘未繳</span><span>${fmt(paid)} ／ ${fmt(left)}</span></div>
+      </div>
+      <div class="cc-detail-title">本期消費明細</div>
       ${(c.items||[]).map(it=>`<div class="cc-item"><span>${c.name} · ${it.label}<span style="color:var(--text-m);">（${it.cat}）</span></span><span>${fmt(it.amt)}</span></div>`).join('')}
       ${rest>0?`<div class="cc-item"><span>${c.name} · <span style="color:var(--text-m);">（${c.restCat||'其他花費'}）</span></span><span>${fmt(rest)}</span></div>`:''}
     </div>`;
@@ -635,9 +687,18 @@ function renderFlow(){
   }).join('');
 }
 
-function renderSaving(){document.getElementById('sav-list').innerHTML=savings.map(s=>{const p=Math.min(100,Math.round(s.saved/s.target*100)),done=s.saved>=s.target;return `<div class="saving-card"><div class="sc-hdr"><div class="sc-name"><i class="ti ti-pig-money" style="font-size:14px;vertical-align:-2px;margin-right:5px;color:var(--pink2-d);" aria-hidden="true"></i>${s.name}${s.where?`<div style="font-size:12px;color:var(--pink2-d);font-weight:600;margin-top:2px;">存放：${s.where}</div>`:''}${s.note?`<div style="font-size:12px;color:var(--text-m);font-weight:400;margin-top:2px;">${s.note}</div>`:''}</div><div class="sc-pct${done?' done':''}">${p}%${done?' ✓':''}</div></div><div class="sc-bar-bg"><div class="sc-fill${done?' done':''}" style="width:${p}%"></div></div><div class="sc-foot"><span>已存 ${fmt(s.saved)}</span><span>目標 ${fmt(s.target)}${done?'':' · 差 '+fmt(s.target-s.saved)}</span></div><div class="sc-actions"><button class="sc-btn" onclick="openSaving(${s.id})">編輯/更新</button><button class="sc-btn del" onclick="openSaving(${s.id})">刪除</button></div></div>`;}).join('')||`<div class="empty">尚無預存計劃</div>`;}
+function renderSaving(){document.getElementById('sav-list').innerHTML=savings.map(s=>{const p=s.target?Math.min(100,Math.round(s.saved/s.target*100)):0,done=s.target>0&&s.saved>=s.target;return `<div class="saving-card" onclick="openSavingDetail(${s.id})" style="cursor:pointer;"><div class="sc-hdr"><div class="sc-name"><i class="ti ti-pig-money" style="font-size:14px;vertical-align:-2px;margin-right:5px;color:var(--pink2-d);" aria-hidden="true"></i>${s.name}${s.where?`<div style="font-size:12px;color:var(--pink2-d);font-weight:600;margin-top:2px;">存放：${s.where}</div>`:''}${s.note?`<div style="font-size:12px;color:var(--text-m);font-weight:400;margin-top:2px;">${s.note}</div>`:''}</div><div class="sc-pct${done?' done':''}">${p}%${done?' ✓':''}</div></div><div class="sc-bar-bg"><div class="sc-fill${done?' done':''}" style="width:${p}%"></div></div><div class="sc-foot"><span>已存 ${fmt(s.saved)}</span><span>目標 ${fmt(s.target)}${done?'':' · 差 '+fmt(Math.max(0,s.target-s.saved))}</span></div><div class="sc-actions"><button class="sc-btn" onclick="event.stopPropagation();openSavingDetail(${s.id})">查看明細</button><button class="sc-btn" onclick="event.stopPropagation();openSaving(${s.id})">編輯計畫</button></div></div>`;}).join('')||`<div class="empty">尚無預存計劃</div>`;}
 
-function renderStock(){const bm={};MEMBERS.forEach(m=>{bm[m]=stocks.filter(s=>s.member===m);});let tp=0;document.getElementById('stk-list').innerHTML=MEMBERS.map(m=>{const ms=bm[m];if(!ms.length)return'';const mp=ms.reduce((a,s)=>a+(s.curVal-s.cost),0);tp+=mp;return `<div class="stk-card"><div class="stk-hdr"><div class="stk-name"><i class="ti ti-user-circle" style="font-size:16px;vertical-align:-3px;margin-right:5px;color:var(--mint-d);" aria-hidden="true"></i>${m}</div><div class="stk-pnl ${mp>=0?'pos':'neg'}">${mp>=0?'+':''}${fmt(mp)}</div></div>${ms.map(s=>`<div class="stk-row"><div class="stk-info"><div class="stk-sname">${s.name}</div><div class="stk-sub">${s.shares}張 · 成本${fmt(s.cost)} · 市值${fmt(s.curVal)}</div></div><div class="stk-pnl ${s.curVal>=s.cost?'pos':'neg'}">${s.curVal>=s.cost?'+':''}${fmt(s.curVal-s.cost)}</div><button class="iedit" onclick="openStock(${s.id},'${m}')">✎</button></div>`).join('')}<button onclick="openStock(null,'${m}')" style="background:none;border:none;color:var(--mint-d);font-size:13px;cursor:pointer;padding:8px 0;font-weight:600;">+ 新增 ${m} 持股</button></div>`;}).join('')||`<div class="empty">尚無持股記錄</div>`;document.getElementById('h-stk').textContent=(tp>=0?'+':'')+fmt(tp);}
+function renderStock(){const bm={};MEMBERS.forEach(m=>{bm[m]=stocks.filter(s=>s.member===m);});document.getElementById('stk-list').innerHTML=MEMBERS.map(m=>{const ms=bm[m];if(!ms.length)return'';const mp=ms.reduce((a,s)=>a+(s.curVal-s.cost),0);return `<div class="stk-card"><div class="stk-hdr"><div class="stk-name"><i class="ti ti-user-circle" style="font-size:16px;vertical-align:-3px;margin-right:5px;color:var(--mint-d);" aria-hidden="true"></i>${m}</div><div class="stk-pnl ${mp>=0?'pos':'neg'}">${mp>=0?'+':''}${fmt(mp)}</div></div>${ms.map(s=>`<div class="stk-row"><div class="stk-info"><div class="stk-sname">${s.name}</div><div class="stk-sub">${s.shares}張 · 成本${fmt(s.cost)} · 市值${fmt(s.curVal)}</div></div><div class="stk-pnl ${s.curVal>=s.cost?'pos':'neg'}">${s.curVal>=s.cost?'+':''}${fmt(s.curVal-s.cost)}</div><button class="iedit" onclick="openStock(${s.id},'${m}')">✎</button></div>`).join('')}<button onclick="openStock(null,'${m}')" style="background:none;border:none;color:var(--mint-d);font-size:13px;cursor:pointer;padding:8px 0;font-weight:600;">+ 新增 ${m} 持股</button></div>`;}).join('')||`<div class="empty">尚無持股記錄</div>`;}
+
+function renderWealth(){
+  const moves=wealthMoves.filter(w=>{const d=new Date((w.date||'')+'T00:00:00');return d.getFullYear()===cY&&d.getMonth()===cM;}).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const saved=moves.filter(w=>w.kind==='saving').reduce((a,w)=>a+w.amt,0),invested=moves.filter(w=>w.kind==='stock').reduce((a,w)=>a+w.amt,0);
+  const pnl=stocks.reduce((a,s)=>a+(s.curVal-s.cost),0);
+  document.getElementById('wealth-strip').innerHTML=`<div class="ss"><div class="ss-l">本月預存</div><div class="ss-v pos">${fmt(saved)}</div></div><div class="ss"><div class="ss-l">本月存股</div><div class="ss-v pos">${fmt(invested)}</div></div><div class="ss"><div class="ss-l">存股損益</div><div class="ss-v ${pnl>=0?'pos':'neg'}">${pnl>=0?'+':''}${fmt(pnl)}</div></div>`;
+  document.getElementById('wealth-move-list').innerHTML=moves.length?moves.map(w=>`<div class="entry-row"><div class="eico inc"><i class="ti ${w.kind==='stock'?'ti-chart-line':'ti-pig-money'}"></i></div><div class="einfo"><div class="ename">${w.targetName}</div><div class="esub">${w.date} · 存入 ${w.to}${w.note?' · '+w.note:''}</div></div><div class="eamt inc">${fmt(w.amt)}</div><button class="iedit" onclick="openWealthMove(${w.id})">✎</button></div>`).join(''):`<div class="empty">本月尚無理財儲蓄紀錄</div>`;
+  renderSaving();renderStock();
+}
 
 function renderBigitems(){
   const sorted=[...bigitems].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
@@ -730,7 +791,7 @@ function deleteCat(i){
 function saveBudgets(){cats.forEach((k,i)=>{const el=document.getElementById('bg-'+i);if(el)budgets[k]=parseFloat(el.value)||0;});recordBudgetChange();pa();renderBudgetBalance();showToast('已儲存，從 '+cY+'年'+MN[cM]+' 起套用新預算，之前月份不受影響');}
 function addCat(){openInlinePrompt('新增支出類別','例：旅遊',function(val){if(!val||!val.trim())return;const t=val.trim();if(cats.includes(t)){showToast('類別已存在','w');return;}cats.push(t);budgets[t]=0;pa();renderBset();showToast('已新增');});}
 
-function renderAll(){renderHome();if(curPg==='cash')renderCash();if(curPg==='flow')renderFlow();if(curPg==='saving')renderSaving();if(curPg==='stock')renderStock();if(curPg==='annual')renderAnnual();if(curPg==='bset')renderBset();if(curPg==='bigitems')renderBigitems();}
+function renderAll(){renderHome();if(curPg==='cash')renderCash();if(curPg==='flow')renderFlow();if(curPg==='wealth')renderWealth();if(curPg==='annual')renderAnnual();if(curPg==='bset')renderBset();if(curPg==='bigitems')renderBigitems();}
 
 function openAcct(id){eAId=id;if(id){const a=accts.find(x=>x.id===id);if(a){document.getElementById('a-name').value=a.name;document.getElementById('a-bal').value=a.bal;document.getElementById('m-acct-t').textContent='編輯帳戶';document.getElementById('a-del').style.display='block';}}else{document.getElementById('a-name').value='';document.getElementById('a-bal').value='';document.getElementById('m-acct-t').textContent='新增帳戶';document.getElementById('a-del').style.display='none';}document.getElementById('m-acct').classList.add('show');}
 function saveAcct(){const name=document.getElementById('a-name').value.trim(),bal=parseFloat(document.getElementById('a-bal').value)||0;if(!name){showToast('請填寫名稱','w');return;}if(eAId){const a=accts.find(x=>x.id===eAId);if(a){a.name=name;a.bal=bal;}}else accts.push({id:nid++,name,bal});pa();closeM('m-acct');renderCash();showToast(eAId?'已更新':'已新增');eAId=null;}
@@ -758,6 +819,72 @@ function delEntry(){if(eEId){entries=entries.filter(e=>e.id!==eEId);pa();closeM(
 function saveIncome(){const name=document.getElementById('i-name').value.trim(),amt=parseFloat(document.getElementById('i-amt').value)||0,acct=document.getElementById('i-pay').value;if(!name||!amt){showToast('請填寫名稱和金額','w');return;}if(eEId){const e=entries.find(x=>x.id===eEId);if(e){e.name=name;e.amt=amt;e.acct=acct;}}else entries.push({id:nid++,year:cY,month:cM,type:'income',name,amt,acct,note:''});pa();closeM('m-income');renderFlow();renderHome();showToast(eEId?'已更新':'已新增');eEId=null;}
 function delIncome(){if(eEId){entries=entries.filter(e=>e.id!==eEId);pa();closeM('m-income');renderFlow();renderHome();showToast('已刪除');eEId=null;}}
 
+function refreshWealthMoveOptions(selectedTarget,selectedTo){
+  const kind=document.getElementById('w-kind').value;
+  const targets=kind==='saving'?savings.map(s=>({id:s.id,name:s.name,to:s.where||'預存帳戶'})):stocks.map(s=>({id:s.id,name:s.member+' · '+s.name,to:s.name}));
+  document.getElementById('w-target').innerHTML=(targets.length?targets:[{id:0,name:kind==='saving'?'其他預存':'其他存股',to:kind==='saving'?'預存帳戶':'證券帳戶'}]).map(t=>`<option value="${t.id}"${String(t.id)===String(selectedTarget)?' selected':''}>${t.name}</option>`).join('');
+  const tos=kind==='saving'?[...new Set([...savingWhereOptions,...targets.map(t=>t.to)])]:[...new Set(['證券帳戶',...targets.map(t=>t.to)])];
+  document.getElementById('w-to').innerHTML=tos.map(x=>`<option${x===selectedTo?' selected':''}>${x}</option>`).join('');
+  if(!selectedTo)syncWealthDestination();
+  updateWealthPreview();
+}
+function syncWealthDestination(){
+  const kind=document.getElementById('w-kind').value,id=Number(document.getElementById('w-target').value);
+  const target=kind==='saving'?savings.find(s=>s.id===id):stocks.find(s=>s.id===id);
+  if(target){const to=kind==='saving'?(target.where||'預存帳戶'):target.name;if([...document.getElementById('w-to').options].some(o=>o.value===to))document.getElementById('w-to').value=to;}
+}
+function promptNewWealthTarget(){
+  const kind=document.getElementById('w-kind').value;
+  openInlinePrompt(kind==='saving'?'新增預存計畫':'新增存股項目',kind==='saving'?'例：明年保險費':'例：0050',function(val){
+    if(!val||!val.trim())return;const name=val.trim();let target;
+    if(kind==='saving'){target={id:nid++,name,target:0,initialAmount:0,saved:0,where:document.getElementById('w-to').value||savingWhereOptions[0],note:''};savings.push(target);}
+    else{target={id:nid++,member:MEMBERS[0],name,shares:0,cost:0,curVal:0};stocks.push(target);}
+    pa();refreshWealthMoveOptions(target.id,kind==='saving'?target.where:target.name);document.getElementById('w-target').value=target.id;updateWealthPreview();showToast('已新增「'+name+'」，之後可在下方編輯完整資料');
+  });
+}
+function updateWealthPreview(){
+  const kind=document.getElementById('w-kind').value,id=Number(document.getElementById('w-target').value),amt=parseFloat(document.getElementById('w-amt').value)||0;
+  const target=kind==='saving'?savings.find(s=>s.id===id):stocks.find(s=>s.id===id),current=target?(kind==='saving'?(Number(target.saved)||0):(Number(target.cost)||0)):0;
+  const old=eWId?wealthMoves.find(w=>w.id===eWId):null,base=current-(old&&old.kind===kind&&Number(old.targetId)===id?old.amt:0);
+  document.getElementById('w-preview').textContent=`這次存入 ${fmt(amt)} · 存入後累計 ${fmt(Math.max(0,base)+amt)}`;
+}
+function openWealthMove(id){
+  eWId=id;const w=id?wealthMoves.find(x=>x.id===id):null;
+  document.getElementById('w-kind').value=w?w.kind:'saving';refreshWealthMoveOptions(w?w.targetId:null,w?w.to:null);
+  if(w){document.getElementById('w-target').value=w.targetId;document.getElementById('w-to').value=w.to;document.getElementById('w-amt').value=w.amt;document.getElementById('w-date').value=w.date;document.getElementById('w-note').value=w.note||'';document.getElementById('m-wealth-t').textContent='編輯理財儲蓄';document.getElementById('w-del').style.display='block';}
+  else{const day=Math.min(new Date().getDate(),new Date(cY,cM+1,0).getDate());document.getElementById('w-amt').value='';document.getElementById('w-date').value=`${cY}-${String(cM+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;document.getElementById('w-note').value='';document.getElementById('m-wealth-t').textContent='新增理財儲蓄';document.getElementById('w-del').style.display='none';}
+  updateWealthPreview();document.getElementById('m-wealth').classList.add('show');
+}
+function applyWealthDelta(w,sign){
+  const target=w.kind==='saving'?savings.find(s=>s.id===Number(w.targetId)):stocks.find(s=>s.id===Number(w.targetId));
+  if(!target)return;if(w.kind==='saving')target.saved=Math.max(0,(Number(target.saved)||0)+sign*w.amt);else target.cost=Math.max(0,(Number(target.cost)||0)+sign*w.amt);
+}
+function saveWealthMove(){
+  const kind=document.getElementById('w-kind').value,targetId=Number(document.getElementById('w-target').value),targetName=document.getElementById('w-target').selectedOptions[0].textContent,to=document.getElementById('w-to').value,amt=parseFloat(document.getElementById('w-amt').value)||0,date=document.getElementById('w-date').value,note=document.getElementById('w-note').value.trim();
+  if(!amt||!date){showToast('請填寫金額和日期','w');return;}const move={id:eWId||nid++,kind,targetId,targetName,to,amt,date,note};
+  if(eWId){const old=wealthMoves.find(w=>w.id===eWId);if(old){applyWealthDelta(old,-1);Object.assign(old,move);applyWealthDelta(old,1);}}
+  else{wealthMoves.push(move);applyWealthDelta(move,1);}pa();closeM('m-wealth');renderHome();if(curPg==='wealth')renderWealth();showToast('理財儲蓄已儲存');eWId=null;
+}
+function delWealthMove(){if(!eWId)return;const w=wealthMoves.find(x=>x.id===eWId);if(w)applyWealthDelta(w,-1);wealthMoves=wealthMoves.filter(x=>x.id!==eWId);pa();closeM('m-wealth');renderHome();if(curPg==='wealth')renderWealth();showToast('已刪除理財儲蓄紀錄');eWId=null;}
+
+function openSavingDetail(id){
+  const s=savings.find(x=>x.id===id);if(!s)return;
+  const moves=wealthMoves.filter(w=>w.kind==='saving'&&Number(w.targetId)===id).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const groups={};moves.forEach(w=>{const key=(w.date||'未填日期').slice(0,7);if(!groups[key])groups[key]=[];groups[key].push(w);});
+  const pctSaved=s.target?Math.min(100,Math.round(s.saved/s.target*100)):0;
+  document.getElementById('m-saving-detail-t').textContent=s.name+' · 預存明細';
+  document.getElementById('s-detail-summary').innerHTML=`<div class="saving-card"><div class="sc-hdr"><div class="sc-name">${s.name}<div style="font-size:12px;color:var(--pink2-d);margin-top:3px;">存放：${s.where||'未設定'}</div></div><div class="sc-pct">${pctSaved}%</div></div><div class="sc-bar-bg"><div class="sc-fill" style="width:${pctSaved}%"></div></div><div class="sc-foot"><span>已存 ${fmt(s.saved)}</span><span>目標 ${fmt(s.target)}</span></div></div>`;
+  document.getElementById('s-detail-list').innerHTML=moves.length?Object.entries(groups).map(([key,items])=>{const subtotal=items.reduce((sum,w)=>sum+w.amt,0),label=key==='未填日期'?key:key.replace('-','年')+'月';return `<div class="budget-card" style="margin-bottom:10px;"><div class="bc-hdr"><span class="bc-name">${label}</span><span class="bc-badge ok">小計 ${fmt(subtotal)}</span></div>${items.map(w=>`<div class="bc-detail-row"><span>${w.date}${w.note?' · '+w.note:''}<br><span style="color:var(--pink2-d);">存入 ${w.to}</span></span><span style="display:flex;align-items:center;gap:5px;font-weight:600;">${fmt(w.amt)}<button class="iedit" onclick="closeM('m-saving-detail');openWealthMove(${w.id})">✎</button></span></div>`).join('')}</div>`;}).join(''):`<div class="empty">這個計畫還沒有存入紀錄</div>`;
+  document.getElementById('s-detail-edit').onclick=function(){closeM('m-saving-detail');openSaving(id);};
+  document.getElementById('s-detail-add').onclick=function(){openSavingContribution(id);};
+  document.getElementById('m-saving-detail').classList.add('show');
+}
+function openSavingContribution(id){
+  closeM('m-saving-detail');openWealthMove(null);
+  document.getElementById('w-kind').value='saving';refreshWealthMoveOptions(id);
+  document.getElementById('w-target').value=String(id);syncWealthDestination();updateWealthPreview();
+}
+
 function refreshSavingWhereOptions(selected){
   document.getElementById('s-where').innerHTML=savingWhereOptions.map(o=>`<option${o===selected?' selected':''}>${o}</option>`).join('');
 }
@@ -771,8 +898,8 @@ function promptNewSavingWhere(){
     }
   });
 }
-function openSaving(id){eSId=id;refreshSavingWhereOptions(id?null:savingWhereOptions[0]);if(id){const s=savings.find(x=>x.id===id);if(s){document.getElementById('s-name').value=s.name;document.getElementById('s-target').value=s.target;document.getElementById('s-saved').value=s.saved;document.getElementById('s-note').value=s.note||'';refreshSavingWhereOptions(s.where||savingWhereOptions[0]);document.getElementById('m-saving-t').textContent='編輯預存項目';document.getElementById('s-del').style.display='block';}}else{document.getElementById('s-name').value='';document.getElementById('s-target').value='';document.getElementById('s-saved').value='';document.getElementById('s-note').value='';document.getElementById('m-saving-t').textContent='新增預存項目';document.getElementById('s-del').style.display='none';}document.getElementById('m-saving').classList.add('show');}
-function saveSaving(){const name=document.getElementById('s-name').value.trim(),target=parseFloat(document.getElementById('s-target').value)||0,saved=parseFloat(document.getElementById('s-saved').value)||0,where=document.getElementById('s-where').value,note=document.getElementById('s-note').value.trim();if(!name||!target){showToast('請填寫名稱和目標','w');return;}if(eSId){const s=savings.find(x=>x.id===eSId);if(s){s.name=name;s.target=target;s.saved=saved;s.where=where;s.note=note;}}else savings.push({id:nid++,name,target,saved,where,note});pa();closeM('m-saving');renderSaving();showToast('已儲存');eSId=null;}
+function openSaving(id){eSId=id;refreshSavingWhereOptions(id?null:savingWhereOptions[0]);if(id){const s=savings.find(x=>x.id===id);if(s){document.getElementById('s-name').value=s.name;document.getElementById('s-target').value=s.target;document.getElementById('s-saved').value=Number(s.initialAmount)||0;document.getElementById('s-note').value=s.note||'';refreshSavingWhereOptions(s.where||savingWhereOptions[0]);document.getElementById('m-saving-t').textContent='編輯預存項目';document.getElementById('s-del').style.display='block';}}else{document.getElementById('s-name').value='';document.getElementById('s-target').value='';document.getElementById('s-saved').value='';document.getElementById('s-note').value='';document.getElementById('m-saving-t').textContent='新增預存項目';document.getElementById('s-del').style.display='none';}document.getElementById('m-saving').classList.add('show');}
+function saveSaving(){const name=document.getElementById('s-name').value.trim(),target=parseFloat(document.getElementById('s-target').value)||0,initialAmount=Math.max(0,parseFloat(document.getElementById('s-saved').value)||0),where=document.getElementById('s-where').value,note=document.getElementById('s-note').value.trim();if(!name||!target){showToast('請填寫名稱和目標','w');return;}if(eSId){const s=savings.find(x=>x.id===eSId);if(s){s.name=name;s.target=target;s.initialAmount=initialAmount;s.saved=initialAmount+savingMoveTotal(s.id);s.where=where;s.note=note;}}else{const id=nid++;savings.push({id,name,target,initialAmount,saved:initialAmount,where,note});}pa();closeM('m-saving');renderSaving();showToast('已儲存');eSId=null;}
 function delSaving(){if(eSId){savings=savings.filter(s=>s.id!==eSId);pa();closeM('m-saving');renderSaving();showToast('已刪除');eSId=null;}}
 
 function openStock(id,member){eStId=id;document.getElementById('st-mem').innerHTML=MEMBERS.map(m=>`<option${m===member?' selected':''}>${m}</option>`).join('');if(id){const s=stocks.find(x=>x.id===id);if(s){document.getElementById('st-name').value=s.name;document.getElementById('st-shares').value=s.shares;document.getElementById('st-cost').value=s.cost;document.getElementById('st-val').value=s.curVal;document.getElementById('m-stock-t').textContent='編輯持股';document.getElementById('st-del').style.display='block';}}else{document.getElementById('st-name').value='';document.getElementById('st-shares').value='';document.getElementById('st-cost').value='';document.getElementById('st-val').value='';document.getElementById('m-stock-t').textContent='新增持股';document.getElementById('st-del').style.display='none';}document.getElementById('m-stock').classList.add('show');}
@@ -844,10 +971,12 @@ function previousCCBill(name){
   return ccbills.filter(c=>c.id!==eCCId&&c.name===name&&(c.year*12+c.month)<here).sort((a,b)=>(b.year*12+b.month)-(a.year*12+a.month))[0]||null;
 }
 function recalculateTrackedCCCarryovers(){
+  let changed=false;
   [...new Set(ccbills.map(c=>c.name))].forEach(name=>{
     const bills=ccbills.filter(c=>c.name===name).sort((a,b)=>(a.year*12+a.month)-(b.year*12+b.month)||a.id-b.id);
-    for(let i=1;i<bills.length;i++)if(bills[i].paymentTracked===true)bills[i].carryover=ccOutstanding(bills[i-1]);
+    for(let i=1;i<bills.length;i++)if(bills[i].paymentTracked===true){const nextCarry=ccOutstanding(bills[i-1]);if(ccCarryover(bills[i])!==nextCarry){bills[i].carryover=nextCarry;changed=true;}}
   });
+  if(changed)sv('hbv4_ccbills',ccbills);
 }
 function fillCCCarryover(){
   const prev=previousCCBill(document.getElementById('cc-name').value);
@@ -969,6 +1098,8 @@ function exportPDF(){
 document.getElementById('mlabel').textContent=MN[cM];
 document.getElementById('yr-label').textContent=cY;
 document.getElementById('h-yr').textContent=cY;
+migrateETFCategory();
+migrateSavingInitialAmounts();
 ensureAutoIncome(cY,cM);
 renderAll();
 </script>
