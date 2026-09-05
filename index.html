@@ -293,6 +293,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft Jheng
   <div id="ann-over"></div>
   <div style="height:1.5px;background:var(--rose-m);border-radius:2px;margin:16px 0;"></div>
   <button onclick="exportPDF()" style="width:100%;background:var(--rose);border:none;border-radius:20px;padding:13px;font-size:15px;color:var(--white);cursor:pointer;font-weight:600;margin-bottom:14px;">📄 匯出年度報告 PDF</button>
+  <div class="sec-hdr"><div class="sec-title"><span class="sec-dot"></span>資料備份</div></div>
+  <div class="hint" style="margin-bottom:8px;">完整備份包含所有帳目、預算、帳戶與信用卡資料。更新程式前請先下載一份。</div>
+  <div style="display:flex;gap:8px;margin-bottom:14px;">
+    <button onclick="exportData()" style="flex:1;background:var(--mint);border:1.5px solid var(--mint-d);border-radius:20px;padding:11px;font-size:14px;color:var(--mint-d);cursor:pointer;font-weight:600;">下載完整備份</button>
+    <button onclick="document.getElementById('import-data-file').click()" style="flex:1;background:var(--white);border:1.5px solid var(--rose-m);border-radius:20px;padding:11px;font-size:14px;color:var(--rose-d);cursor:pointer;font-weight:600;">還原備份</button>
+    <input id="import-data-file" type="file" accept="application/json,.json" onchange="importData(this)" style="display:none;"/>
+  </div>
   <div class="ny-box">
     <div class="ny-ttl" id="ny-title">開始新的一年</div>
     <div class="ny-desc">預算和帳戶餘額帶過去，交易清空，舊資料自動備份。</div>
@@ -386,8 +393,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft Jheng
 
 <div id="m-cc" class="modal-overlay"><div class="modal-box">
   <div class="modal-ttl" id="m-cc-t">新增信用卡帳單</div>
-  <div class="field"><label>信用卡名稱</label><select id="cc-name"><option>聯邦信用卡</option><option>玉山信用卡</option><option>台新信用卡</option><option>富邦信用卡</option><option>中國信託信用卡</option></select></div>
-  <div class="field"><label>本期帳單總金額 (NT$)</label><input id="cc-total" type="number" placeholder="0" oninput="updateCCPreview()"/></div>
+  <div class="field"><label>信用卡名稱</label><select id="cc-name" onchange="fillCCCarryover()"><option>聯邦信用卡</option><option>玉山信用卡</option><option>台新信用卡</option><option>富邦信用卡</option><option>中國信託信用卡</option></select></div>
+  <div class="field"><label>本期新增消費 (NT$)</label><input id="cc-total" type="number" placeholder="0" oninput="updateCCPreview()"/></div>
+  <div class="field"><label>上期未繳（自動帶入，可修正）</label><input id="cc-carryover" type="number" placeholder="0" oninput="updateCCPreview()"/></div>
+  <div class="field"><label>本期實際繳款</label><input id="cc-paid" type="number" placeholder="0" oninput="syncCCPaidCheck();updateCCPreview()"/></div>
+  <div class="field"><label>繳款日期（選填）</label><input id="cc-paid-date" type="date"/></div>
+  <div class="field" style="display:flex;align-items:center;gap:8px;"><input id="cc-paid-full" type="checkbox" onchange="setCCPaidFull(this.checked)" style="width:20px;height:20px;accent-color:var(--mint-d);"><label for="cc-paid-full" style="margin:0;">本期已全部繳清</label></div>
   <div class="field">
     <label>剩餘金額歸入類別</label>
     <div style="display:flex;gap:6px;">
@@ -415,7 +426,9 @@ const MN=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月'
 const PAY=['現金','農會','郵局','玉山','台新','玉山信用卡','台新信用卡','富邦信用卡','聯邦信用卡','中信信用卡'];
 const MEMBERS=['游先生','蕭小姐','哲綸','哲聿'];
 const ENC=['本月所有支出都在預算內，太厲害了！','理財高手！全部類別沒有超支！','本月控制得很好，家庭財務超健康！','預算執行完美，繼續保持！'];
-let cM=6,cY=2026;
+const now=new Date();
+let cM=now.getMonth(),cY=now.getFullYear();
+try{const last=JSON.parse(localStorage.getItem('hbv4_lastview'));if(last&&Number.isInteger(last.month)&&Number.isInteger(last.year)){cM=last.month;cY=last.year;}}catch(e){}
 function payOptionsHTML(selected){
   return PAY.map(m=>`<option${m===selected?' selected':''}>${m}</option>`).join('')+`<option value="__newpay__">+ 新增支付方式...</option>`;
 }
@@ -500,7 +513,8 @@ function ensureAutoIncome(y,m){
   }
 }
 
-function chM(d){let m=cM+d;if(m<0){m=11;cY--;}else if(m>11){m=0;cY++;}cM=m;document.getElementById('mlabel').textContent=MN[cM];document.getElementById('yr-label').textContent=cY;document.getElementById('h-yr').textContent=cY;ensureAutoIncome(cY,cM);renderAll();}
+function rememberView(){sv('hbv4_lastview',{year:cY,month:cM});}
+function chM(d){let m=cM+d;if(m<0){m=11;cY--;}else if(m>11){m=0;cY++;}cM=m;rememberView();document.getElementById('mlabel').textContent=MN[cM];document.getElementById('yr-label').textContent=cY;document.getElementById('h-yr').textContent=cY;ensureAutoIncome(cY,cM);renderAll();}
 let curPg='home';
 function go(p){curPg=p;document.querySelectorAll('.pg,.home-pg').forEach(el=>el.classList.remove('active'));document.getElementById('pg-'+p).classList.add('active');const T={home:'家庭帳本',cash:'現金帳戶',flow:'本月收支',saving:'預存計劃',stock:'存股追蹤',annual:'年度總結',bset:'預算設定',bigitems:'年度重大收支'};document.getElementById('page-title').textContent=T[p]||'家庭帳本';document.getElementById('mnav').style.display=(p==='home'||p==='flow')?'flex':'none';renderAll();window.scrollTo(0,0);}
 function goHome(){go('home');}
@@ -570,6 +584,11 @@ function ccRestAmount(cc){
   const itemsTotal=(cc.items||[]).reduce((a,it)=>a+it.amt,0);
   return Math.max(0,cc.total-itemsTotal);
 }
+function ccCarryover(cc){return Math.max(0,Number(cc.carryover)||0);}
+function ccDue(cc){return Math.max(0,(Number(cc.total)||0)+ccCarryover(cc));}
+function ccPaid(cc){return cc.paymentTracked===true?Math.max(0,Number(cc.paidAmount)||0):ccDue(cc);}
+function ccOutstanding(cc){return Math.max(0,ccDue(cc)-ccPaid(cc));}
+function ccStatus(cc){const left=ccOutstanding(cc);if(left<=0)return'已繳清';return ccPaid(cc)>0?'部分繳款':'未繳';}
 
 function renderFlow(){
   ensureAutoIncome(cY,cM);
@@ -583,8 +602,12 @@ function renderFlow(){
 
   document.getElementById('cc-list').innerHTML=ccThisMonth.length?ccThisMonth.map(c=>{
     const rest=ccRestAmount(c);
+    const due=ccDue(c),paid=ccPaid(c),left=ccOutstanding(c),status=ccStatus(c);
     return `<div class="cc-card" onclick="openCC(${c.id})">
-      <div class="cc-hdr"><div class="cc-name"><i class="ti ti-credit-card" style="font-size:15px;vertical-align:-2px;margin-right:5px;color:#7A5AA8;" aria-hidden="true"></i>${c.name}</div><div class="cc-total">${fmt(c.total)}</div></div>
+      <div class="cc-hdr"><div class="cc-name"><i class="ti ti-credit-card" style="font-size:15px;vertical-align:-2px;margin-right:5px;color:#7A5AA8;" aria-hidden="true"></i>${c.name}<div style="font-size:11px;margin-top:3px;color:${left>0?'var(--rose-d)':'var(--mint-d)'};">${status}${c.paidDate?' · '+c.paidDate:''}</div></div><div class="cc-total">應繳 ${fmt(due)}</div></div>
+      ${ccCarryover(c)>0?`<div class="cc-item"><span>上期未繳（不重複計入支出）</span><span>${fmt(ccCarryover(c))}</span></div>`:''}
+      <div class="cc-item"><span>本期新增消費</span><span>${fmt(c.total)}</span></div>
+      <div class="cc-item"><span>本期已繳／剩餘未繳</span><span>${fmt(paid)} ／ ${fmt(left)}</span></div>
       ${(c.items||[]).map(it=>`<div class="cc-item"><span>${c.name} · ${it.label}<span style="color:var(--text-m);">（${it.cat}）</span></span><span>${fmt(it.amt)}</span></div>`).join('')}
       ${rest>0?`<div class="cc-item"><span>${c.name} · <span style="color:var(--text-m);">（${c.restCat||'其他花費'}）</span></span><span>${fmt(rest)}</span></div>`:''}
     </div>`;
@@ -791,10 +814,31 @@ function renderCCItemsWrap(){
 function removeCCItem(i){ccItemsTemp.splice(i,1);renderCCItemsWrap();}
 function updateCCPreview(){
   const total=parseFloat(document.getElementById('cc-total').value)||0;
+  const carry=Math.max(0,parseFloat(document.getElementById('cc-carryover').value)||0);
+  const paid=Math.max(0,parseFloat(document.getElementById('cc-paid').value)||0);
   const itemsTotal=ccItemsTemp.reduce((a,it)=>a+(it.amt||0),0);
   const rest=Math.max(0,total-itemsTotal);
   const restCat=document.getElementById('cc-restcat').value;
-  document.getElementById('cc-preview').textContent=`帳單總額 ${fmt(total)}，細項共 ${fmt(itemsTotal)}，剩餘 ${fmt(rest)} 會記到「${restCat}」`;
+  const due=total+carry,left=Math.max(0,due-paid);
+  document.getElementById('cc-preview').textContent=`本期新增 ${fmt(total)}＋上期未繳 ${fmt(carry)}＝應繳 ${fmt(due)}；已繳 ${fmt(paid)}，尚欠 ${fmt(left)}。本期未分類的 ${fmt(rest)} 會記到「${restCat}」。年度報表只計本期新增 ${fmt(total)}。`;
+}
+function previousCCBill(name){
+  const here=cY*12+cM;
+  return ccbills.filter(c=>c.id!==eCCId&&c.name===name&&(c.year*12+c.month)<here).sort((a,b)=>(b.year*12+b.month)-(a.year*12+a.month))[0]||null;
+}
+function fillCCCarryover(){
+  if(eCCId)return;
+  const prev=previousCCBill(document.getElementById('cc-name').value);
+  document.getElementById('cc-carryover').value=prev?ccOutstanding(prev):0;
+  updateCCPreview();
+}
+function setCCPaidFull(checked){
+  if(checked){const total=parseFloat(document.getElementById('cc-total').value)||0,carry=parseFloat(document.getElementById('cc-carryover').value)||0;document.getElementById('cc-paid').value=Math.max(0,total+carry);}
+  updateCCPreview();
+}
+function syncCCPaidCheck(){
+  const total=parseFloat(document.getElementById('cc-total').value)||0,carry=parseFloat(document.getElementById('cc-carryover').value)||0,paid=parseFloat(document.getElementById('cc-paid').value)||0;
+  document.getElementById('cc-paid-full').checked=total+carry>0&&paid>=total+carry;
 }
 function refreshCCRestCatOptions(selected){
   document.getElementById('cc-restcat').innerHTML=cats.map(c=>`<option${c===selected?' selected':''}>${c}</option>`).join('');
@@ -818,34 +862,72 @@ function openCC(id){
     if(c){
       document.getElementById('cc-name').value=c.name;
       document.getElementById('cc-total').value=c.total;
+      document.getElementById('cc-carryover').value=ccCarryover(c);
+      document.getElementById('cc-paid').value=ccPaid(c);
+      document.getElementById('cc-paid-date').value=c.paidDate||'';
       refreshCCRestCatOptions(c.restCat||cats[0]);
       ccItemsTemp=(c.items||[]).map(it=>({...it}));
       document.getElementById('m-cc-t').textContent='編輯信用卡帳單';
       document.getElementById('cc-del').style.display='block';
     }
   }else{
-    document.getElementById('cc-name').value='';
+    document.getElementById('cc-name').selectedIndex=0;
     document.getElementById('cc-total').value='';
+    document.getElementById('cc-carryover').value='0';
+    document.getElementById('cc-paid').value='0';
+    document.getElementById('cc-paid-date').value='';
     ccItemsTemp=[];
     document.getElementById('m-cc-t').textContent='新增信用卡帳單';
     document.getElementById('cc-del').style.display='none';
   }
+  if(!id)fillCCCarryover();
+  syncCCPaidCheck();
   renderCCItemsWrap();
   document.getElementById('m-cc').classList.add('show');
 }
 function saveCC(){
   const name=document.getElementById('cc-name').value.trim();
   const total=parseFloat(document.getElementById('cc-total').value)||0;
+  const carryover=Math.max(0,parseFloat(document.getElementById('cc-carryover').value)||0);
+  const paidAmount=Math.max(0,parseFloat(document.getElementById('cc-paid').value)||0);
+  const paidDate=document.getElementById('cc-paid-date').value;
   const restCat=document.getElementById('cc-restcat').value;
   const items=ccItemsTemp.filter(it=>it.label&&it.amt>0);
-  if(!name||!total){showToast('請填寫卡片名稱和總金額','w');return;}
-  if(eCCId){const c=ccbills.find(x=>x.id===eCCId);if(c){c.name=name;c.total=total;c.restCat=restCat;c.items=items;}}
-  else ccbills.push({id:nid++,year:cY,month:cM,name,total,restCat,items});
+  if(!name||total+carryover<=0){showToast('請填寫卡片名稱和金額','w');return;}
+  if(paidAmount>total+carryover){showToast('實際繳款不能超過本期應繳總額','w');return;}
+  if(eCCId){const c=ccbills.find(x=>x.id===eCCId);if(c){c.name=name;c.total=total;c.carryover=carryover;c.paidAmount=paidAmount;c.paidDate=paidDate;c.paymentTracked=true;c.restCat=restCat;c.items=items;}}
+  else ccbills.push({id:nid++,year:cY,month:cM,name,total,carryover,paidAmount,paidDate,paymentTracked:true,restCat,items});
   pa();closeM('m-cc');renderFlow();renderHome();showToast('已儲存');eCCId=null;
 }
 function delCC(){if(eCCId){ccbills=ccbills.filter(c=>c.id!==eCCId);pa();closeM('m-cc');renderFlow();renderHome();showToast('已刪除');eCCId=null;}}
 
-function startNewYear(){const ny=cY+1;sv('hbv4_backup_'+cY,JSON.stringify({entries,accts,budgets,savings,stocks,bigitems,ccbills}));entries=[];ccbills=[];cY=ny;cM=0;document.getElementById('mlabel').textContent=MN[0];document.getElementById('yr-label').textContent=ny;pa();goHome();showToast(ny+'年度開始！舊資料已備份');}
+function exportData(){
+  pa();rememberView();
+  const data={format:'家庭帳本完整備份',version:1,exportedAt:new Date().toISOString(),storage:{}};
+  for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('hbv4_'))data.storage[k]=localStorage.getItem(k);}
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+  a.download=`家庭帳本完整備份-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();URL.revokeObjectURL(a.href);showToast('完整備份已下載');
+}
+function importData(input){
+  const file=input.files&&input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(){
+    try{
+      const data=JSON.parse(reader.result);
+      if(data.format!=='家庭帳本完整備份'||!data.storage)throw new Error('格式不符');
+      const keys=Object.keys(data.storage).filter(k=>k.startsWith('hbv4_'));
+      if(!keys.length)throw new Error('沒有帳本資料');
+      if(!confirm('還原會以備份內容取代這台裝置目前的家庭帳本資料，確定繼續嗎？')){input.value='';return;}
+      for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.startsWith('hbv4_'))localStorage.removeItem(k);}
+      keys.forEach(k=>localStorage.setItem(k,data.storage[k]));
+      location.reload();
+    }catch(e){showToast('無法還原：備份檔格式不正確','w');input.value='';}
+  };
+  reader.readAsText(file);
+}
+function startNewYear(){const ny=cY+1;sv('hbv4_backup_'+cY,JSON.stringify({entries,accts,budgets,savings,stocks,bigitems,ccbills}));entries=[];ccbills=[];cY=ny;cM=0;rememberView();document.getElementById('mlabel').textContent=MN[0];document.getElementById('yr-label').textContent=ny;pa();goHome();showToast(ny+'年度開始！舊資料已備份');}
 function exportPDF(){
   const ye=entries.filter(e=>e.year===cY);
   const bigYear=bigitems.filter(b=>(b.date||'').startsWith(String(cY)));
@@ -860,6 +942,9 @@ function exportPDF(){
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));a.download=cY+'年度財務報告.html';a.click();showToast('已匯出！');
 }
 
+document.getElementById('mlabel').textContent=MN[cM];
+document.getElementById('yr-label').textContent=cY;
+document.getElementById('h-yr').textContent=cY;
 ensureAutoIncome(cY,cM);
 renderAll();
 </script>
