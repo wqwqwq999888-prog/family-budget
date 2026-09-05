@@ -234,7 +234,7 @@ body:has(.modal-overlay.show){overflow:hidden;}
   </div>
   <div class="month-sum-strip" id="home-month-strip"></div>
   <div class="grid3">
-    <div class="mini-card mint sm" onclick="go('wealth')"><div class="mc-icon"><i class="ti ti-pig-money" aria-hidden="true"></i></div><div class="mc-label">理財儲蓄</div><div class="mc-val" id="h-sav">查看</div></div>
+    <div class="mini-card mint sm" onclick="go('wealth')"><div class="mc-icon"><i class="ti ti-pig-money" aria-hidden="true"></i></div><div class="mc-label">理財儲蓄總額</div><div class="mc-val" id="h-sav">查看</div></div>
     <div class="mini-card lav sm" onclick="go('bigitems')"><div class="mc-icon"><i class="ti ti-diamond" aria-hidden="true"></i></div><div class="mc-label">重大收支</div><div class="mc-val">查看</div></div>
     <div class="mini-card amber sm" onclick="go('annual')"><div class="mc-icon"><i class="ti ti-calendar-stats" aria-hidden="true"></i></div><div class="mc-label">年度總結</div><div class="mc-val" id="h-yr">2026</div></div>
   </div>
@@ -605,9 +605,12 @@ function renderHome(){
   const cT=getCatTotals(cY,cM);
   const exp=Object.values(cT).reduce((a,v)=>a+v,0);
   const monthSaving=wealthMoves.filter(w=>{const d=new Date((w.date||'')+'T00:00:00');return d.getFullYear()===cY&&d.getMonth()===cM;}).reduce((a,w)=>a+w.amt,0);
+  const savingAssets=savings.reduce((sum,s)=>sum+(Number(s.saved)||0),0);
+  const stockAssets=stocks.reduce((sum,s)=>sum+(Number(s.curVal)>0?Number(s.curVal):(Number(s.cost)||0)),0);
+  const wealthAssets=savingAssets+stockAssets;
   document.getElementById('h-cash').textContent=fmt(tot);
   document.getElementById('h-sub').textContent=accts.length+'個帳戶合計 · 點此查看明細';
-  document.getElementById('h-sav').textContent=fmt(monthSaving);
+  document.getElementById('h-sav').textContent=fmt(wealthAssets);
   document.getElementById('h-yr').textContent=cY;
   document.getElementById('ny-title').textContent='開始 '+(cY+1)+' 年度';
   document.getElementById('ny-btn').textContent='確認開始 '+(cY+1)+' 年度';
