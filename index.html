@@ -396,8 +396,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft Jheng
   <div class="field"><label>信用卡名稱</label><select id="cc-name" onchange="fillCCCarryover()"><option>聯邦信用卡</option><option>玉山信用卡</option><option>台新信用卡</option><option>富邦信用卡</option><option>中國信託信用卡</option></select></div>
   <div class="field"><label>本期新增消費 (NT$)</label><input id="cc-total" type="number" placeholder="0" oninput="syncCCPaidCheck();updateCCPreview()"/></div>
   <div class="field"><label>上期未繳（自動帶入，可修正）</label><input id="cc-carryover" type="number" placeholder="0" oninput="syncCCPaidCheck();updateCCPreview()"/></div>
-  <div class="field"><label>本期實際繳款</label><input id="cc-paid" type="number" placeholder="0" oninput="syncCCPaidCheck();updateCCPreview()"/></div>
-  <div class="field"><label>繳款日期（選填）</label><input id="cc-paid-date" type="date"/></div>
+  <div class="field">
+    <label>本期繳款紀錄（可分多次繳款）</label>
+    <div id="cc-payments-wrap"></div>
+    <button type="button" class="add-ccitem-btn" onclick="addCCPaymentRow()">+ 新增一筆繳款</button>
+  </div>
   <div class="field" style="display:flex;align-items:center;gap:8px;"><input id="cc-paid-full" type="checkbox" onchange="setCCPaidFull(this.checked)" style="width:20px;height:20px;accent-color:var(--mint-d);"><label for="cc-paid-full" style="margin:0;">本期已全部繳清</label></div>
   <div class="field">
     <label>剩餘金額歸入類別</label>
@@ -586,7 +589,12 @@ function ccRestAmount(cc){
 }
 function ccCarryover(cc){return Math.max(0,Number(cc.carryover)||0);}
 function ccDue(cc){return Math.max(0,(Number(cc.total)||0)+ccCarryover(cc));}
-function ccPaid(cc){return cc.paymentTracked===true?Math.max(0,Number(cc.paidAmount)||0):ccDue(cc);}
+function ccPayments(cc){
+  if(Array.isArray(cc.payments))return cc.payments.filter(p=>(Number(p.amt)||0)>0).map(p=>({date:p.date||'',amt:Math.max(0,Number(p.amt)||0)}));
+  if(cc.paymentTracked===true){const amt=Math.max(0,Number(cc.paidAmount)||0);return amt>0?[{date:cc.paidDate||'',amt}]:[];}
+  return ccDue(cc)>0?[{date:cc.paidDate||'',amt:ccDue(cc)}]:[];
+}
+function ccPaid(cc){return ccPayments(cc).reduce((sum,p)=>sum+p.amt,0);}
 function ccOutstanding(cc){return Math.max(0,ccDue(cc)-ccPaid(cc));}
 function ccStatus(cc){const left=ccOutstanding(cc);if(left<=0)return'已繳清';return ccPaid(cc)>0?'部分繳款':'未繳';}
 
@@ -602,12 +610,13 @@ function renderFlow(){
 
   document.getElementById('cc-list').innerHTML=ccThisMonth.length?ccThisMonth.map(c=>{
     const rest=ccRestAmount(c);
-    const due=ccDue(c),paid=ccPaid(c),left=ccOutstanding(c),status=ccStatus(c);
+    const due=ccDue(c),paid=ccPaid(c),left=ccOutstanding(c),status=ccStatus(c),payments=ccPayments(c);
     return `<div class="cc-card" onclick="openCC(${c.id})">
-      <div class="cc-hdr"><div class="cc-name"><i class="ti ti-credit-card" style="font-size:15px;vertical-align:-2px;margin-right:5px;color:#7A5AA8;" aria-hidden="true"></i>${c.name}<div style="font-size:11px;margin-top:3px;color:${left>0?'var(--rose-d)':'var(--mint-d)'};">${status}${c.paidDate?' · '+c.paidDate:''}</div></div><div class="cc-total">應繳 ${fmt(due)}</div></div>
+      <div class="cc-hdr"><div class="cc-name"><i class="ti ti-credit-card" style="font-size:15px;vertical-align:-2px;margin-right:5px;color:#7A5AA8;" aria-hidden="true"></i>${c.name}<div style="font-size:11px;margin-top:3px;color:${left>0?'var(--rose-d)':'var(--mint-d)'};">${status}${payments.length?' · '+payments.length+'筆繳款':''}</div></div><div class="cc-total">應繳 ${fmt(due)}</div></div>
       ${ccCarryover(c)>0?`<div class="cc-item"><span>上期未繳（不重複計入支出）</span><span>${fmt(ccCarryover(c))}</span></div>`:''}
       <div class="cc-item"><span>本期新增消費</span><span>${fmt(c.total)}</span></div>
       <div class="cc-item"><span>本期已繳／剩餘未繳</span><span>${fmt(paid)} ／ ${fmt(left)}</span></div>
+      ${payments.map(p=>`<div class="cc-item"><span>繳款${p.date?' · '+p.date:''}</span><span>${fmt(p.amt)}</span></div>`).join('')}
       ${(c.items||[]).map(it=>`<div class="cc-item"><span>${c.name} · ${it.label}<span style="color:var(--text-m);">（${it.cat}）</span></span><span>${fmt(it.amt)}</span></div>`).join('')}
       ${rest>0?`<div class="cc-item"><span>${c.name} · <span style="color:var(--text-m);">（${c.restCat||'其他花費'}）</span></span><span>${fmt(rest)}</span></div>`:''}
     </div>`;
@@ -778,7 +787,15 @@ function openAutoInc(id){eAiId=id;document.getElementById('ai-pay').innerHTML=pa
 function saveAutoInc(){const name=document.getElementById('ai-name').value.trim(),amt=parseFloat(document.getElementById('ai-amt').value)||0,acct=document.getElementById('ai-pay').value;if(!name||!amt){showToast('請填寫名稱和金額','w');return;}if(eAiId){const ai=autoIncome.find(x=>x.id===eAiId);if(ai){ai.name=name;ai.amt=amt;ai.acct=acct;}}else autoIncome.push({id:nid++,name,amt,acct});pa();closeM('m-autoinc');renderAutoIncList();renderBudgetBalance();showToast('已儲存，下個月起會自動帶入');eAiId=null;}
 function delAutoInc(){if(eAiId){autoIncome=autoIncome.filter(a=>a.id!==eAiId);pa();closeM('m-autoinc');renderAutoIncList();renderBudgetBalance();showToast('已刪除');eAiId=null;}}
 
-let ccItemsTemp=[];
+let ccItemsTemp=[],ccPaymentsTemp=[];
+function ccPaymentTotalTemp(){return ccPaymentsTemp.reduce((sum,p)=>sum+(Number(p.amt)||0),0);}
+function addCCPaymentRow(payment){ccPaymentsTemp.push(payment||{date:new Date().toISOString().slice(0,10),amt:0});renderCCPaymentsWrap();}
+function removeCCPaymentRow(i){ccPaymentsTemp.splice(i,1);renderCCPaymentsWrap();}
+function renderCCPaymentsWrap(){
+  const w=document.getElementById('cc-payments-wrap');
+  w.innerHTML=ccPaymentsTemp.map((p,i)=>`<div class="ccitem-row"><input type="date" value="${p.date||''}" oninput="ccPaymentsTemp[${i}].date=this.value" style="flex:1.2;min-width:130px;"><input type="number" placeholder="繳款金額" value="${p.amt||''}" oninput="ccPaymentsTemp[${i}].amt=parseFloat(this.value)||0;syncCCPaidCheck();updateCCPreview()" style="flex:1;min-width:100px;"><button type="button" class="ccitem-del" onclick="removeCCPaymentRow(${i})">×</button></div>`).join('')||`<div class="hint" style="margin-bottom:8px;">尚無繳款紀錄</div>`;
+  syncCCPaidCheck();updateCCPreview();
+}
 function addCCItemRow(item){
   ccItemsTemp.push(item||{label:'',amt:0,cat:cats[0]});
   renderCCItemsWrap();
@@ -815,7 +832,7 @@ function removeCCItem(i){ccItemsTemp.splice(i,1);renderCCItemsWrap();}
 function updateCCPreview(){
   const total=parseFloat(document.getElementById('cc-total').value)||0;
   const carry=Math.max(0,parseFloat(document.getElementById('cc-carryover').value)||0);
-  const paid=Math.max(0,parseFloat(document.getElementById('cc-paid').value)||0);
+  const paid=ccPaymentTotalTemp();
   const itemsTotal=ccItemsTemp.reduce((a,it)=>a+(it.amt||0),0);
   const rest=Math.max(0,total-itemsTotal);
   const restCat=document.getElementById('cc-restcat').value;
@@ -826,19 +843,25 @@ function previousCCBill(name){
   const here=cY*12+cM;
   return ccbills.filter(c=>c.id!==eCCId&&c.name===name&&(c.year*12+c.month)<here).sort((a,b)=>(b.year*12+b.month)-(a.year*12+a.month))[0]||null;
 }
+function recalculateTrackedCCCarryovers(){
+  [...new Set(ccbills.map(c=>c.name))].forEach(name=>{
+    const bills=ccbills.filter(c=>c.name===name).sort((a,b)=>(a.year*12+a.month)-(b.year*12+b.month)||a.id-b.id);
+    for(let i=1;i<bills.length;i++)if(bills[i].paymentTracked===true)bills[i].carryover=ccOutstanding(bills[i-1]);
+  });
+}
 function fillCCCarryover(){
-  if(eCCId)return;
   const prev=previousCCBill(document.getElementById('cc-name').value);
   document.getElementById('cc-carryover').value=prev?ccOutstanding(prev):0;
   updateCCPreview();
 }
 function setCCPaidFull(checked){
   const total=parseFloat(document.getElementById('cc-total').value)||0,carry=parseFloat(document.getElementById('cc-carryover').value)||0;
-  document.getElementById('cc-paid').value=checked?Math.max(0,total+carry):0;
-  updateCCPreview();
+  if(checked){const remain=Math.max(0,total+carry-ccPaymentTotalTemp());if(remain>0)ccPaymentsTemp.push({date:new Date().toISOString().slice(0,10),amt:remain});}
+  else ccPaymentsTemp=[];
+  renderCCPaymentsWrap();
 }
 function syncCCPaidCheck(){
-  const total=parseFloat(document.getElementById('cc-total').value)||0,carry=parseFloat(document.getElementById('cc-carryover').value)||0,paid=parseFloat(document.getElementById('cc-paid').value)||0;
+  const total=parseFloat(document.getElementById('cc-total').value)||0,carry=parseFloat(document.getElementById('cc-carryover').value)||0,paid=ccPaymentTotalTemp();
   document.getElementById('cc-paid-full').checked=total+carry>0&&paid>=total+carry;
 }
 function refreshCCRestCatOptions(selected){
@@ -863,9 +886,9 @@ function openCC(id){
     if(c){
       document.getElementById('cc-name').value=c.name;
       document.getElementById('cc-total').value=c.total;
-      document.getElementById('cc-carryover').value=ccCarryover(c);
-      document.getElementById('cc-paid').value=ccPaid(c);
-      document.getElementById('cc-paid-date').value=c.paidDate||'';
+      const prev=previousCCBill(c.name);
+      document.getElementById('cc-carryover').value=prev?ccOutstanding(prev):ccCarryover(c);
+      ccPaymentsTemp=ccPayments(c);
       refreshCCRestCatOptions(c.restCat||cats[0]);
       ccItemsTemp=(c.items||[]).map(it=>({...it}));
       document.getElementById('m-cc-t').textContent='編輯信用卡帳單';
@@ -875,14 +898,13 @@ function openCC(id){
     document.getElementById('cc-name').selectedIndex=0;
     document.getElementById('cc-total').value='';
     document.getElementById('cc-carryover').value='0';
-    document.getElementById('cc-paid').value='0';
-    document.getElementById('cc-paid-date').value='';
+    ccPaymentsTemp=[];
     ccItemsTemp=[];
     document.getElementById('m-cc-t').textContent='新增信用卡帳單';
     document.getElementById('cc-del').style.display='none';
   }
   if(!id)fillCCCarryover();
-  syncCCPaidCheck();
+  renderCCPaymentsWrap();
   renderCCItemsWrap();
   document.getElementById('m-cc').classList.add('show');
 }
@@ -890,17 +912,18 @@ function saveCC(){
   const name=document.getElementById('cc-name').value.trim();
   const total=parseFloat(document.getElementById('cc-total').value)||0;
   const carryover=Math.max(0,parseFloat(document.getElementById('cc-carryover').value)||0);
-  const paidAmount=Math.max(0,parseFloat(document.getElementById('cc-paid').value)||0);
-  const paidDate=document.getElementById('cc-paid-date').value;
+  const payments=ccPaymentsTemp.filter(p=>(Number(p.amt)||0)>0).map(p=>({date:p.date||'',amt:Math.max(0,Number(p.amt)||0)}));
+  const paidAmount=payments.reduce((sum,p)=>sum+p.amt,0);
+  const paidDate=payments.length?payments[payments.length-1].date||'':'';
   const restCat=document.getElementById('cc-restcat').value;
   const items=ccItemsTemp.filter(it=>it.label&&it.amt>0);
   if(!name||total+carryover<=0){showToast('請填寫卡片名稱和金額','w');return;}
   if(paidAmount>total+carryover){showToast('實際繳款不能超過本期應繳總額','w');return;}
-  if(eCCId){const c=ccbills.find(x=>x.id===eCCId);if(c){c.name=name;c.total=total;c.carryover=carryover;c.paidAmount=paidAmount;c.paidDate=paidDate;c.paymentTracked=true;c.restCat=restCat;c.items=items;}}
-  else ccbills.push({id:nid++,year:cY,month:cM,name,total,carryover,paidAmount,paidDate,paymentTracked:true,restCat,items});
-  pa();closeM('m-cc');renderFlow();renderHome();showToast('已儲存');eCCId=null;
+  if(eCCId){const c=ccbills.find(x=>x.id===eCCId);if(c){c.name=name;c.total=total;c.carryover=carryover;c.payments=payments;c.paidAmount=paidAmount;c.paidDate=paidDate;c.paymentTracked=true;c.restCat=restCat;c.items=items;}}
+  else ccbills.push({id:nid++,year:cY,month:cM,name,total,carryover,payments,paidAmount,paidDate,paymentTracked:true,restCat,items});
+  recalculateTrackedCCCarryovers();pa();closeM('m-cc');renderFlow();renderHome();showToast('已儲存');eCCId=null;
 }
-function delCC(){if(eCCId){ccbills=ccbills.filter(c=>c.id!==eCCId);pa();closeM('m-cc');renderFlow();renderHome();showToast('已刪除');eCCId=null;}}
+function delCC(){if(eCCId){ccbills=ccbills.filter(c=>c.id!==eCCId);recalculateTrackedCCCarryovers();pa();closeM('m-cc');renderFlow();renderHome();showToast('已刪除');eCCId=null;}}
 
 function exportData(){
   pa();rememberView();
