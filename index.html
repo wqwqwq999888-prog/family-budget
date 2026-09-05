@@ -373,7 +373,7 @@ body:has(.modal-overlay.show){overflow:hidden;}
   </div>
   <div id="s-stock-fields" style="display:none;">
     <div class="field"><label>證券戶成員</label><select id="s-stock-member" onchange="refreshSavingStockOptions(this.value)"></select></div>
-    <div class="field"><label>預設股票（每次新增仍可更換）</label><select id="s-stock-id"></select></div>
+    <div class="field"><label>預設股票（每次新增仍可更換）</label><div style="display:flex;gap:6px;"><select id="s-stock-id" style="flex:1;"></select><button type="button" class="cc-newcat-btn" onclick="promptNewLinkedStock('saving')" title="新增股票">+</button></div></div>
   </div>
   <div class="field"><label>備註</label><input id="s-note" placeholder="選填"/></div>
   <div class="mbtns"><button class="btn-cancel" onclick="closeM('m-saving')">取消</button><button id="s-del" class="btn-del" onclick="delSaving()" style="display:none">刪除</button><button class="btn-save" onclick="saveSaving()">儲存</button></div>
@@ -391,7 +391,7 @@ body:has(.modal-overlay.show){overflow:hidden;}
   <div class="modal-ttl" id="m-stock-t">新增持股</div>
   <div class="field"><label>成員</label><select id="st-mem"></select></div>
   <div class="field"><label>股票名稱/代號</label><input id="st-name" placeholder="例：台積電 2330"/></div>
-  <div class="field"><label>持股張數</label><input id="st-shares" type="number" placeholder="0"/></div>
+  <div class="field"><label>持股數</label><input id="st-shares" type="number" placeholder="0"/></div>
   <div class="field"><label>買入成本 (NT$)</label><input id="st-cost" type="number" placeholder="0"/></div>
   <div class="field"><label>目前市值 (NT$)</label><input id="st-val" type="number" placeholder="0"/></div>
   <div class="mbtns"><button class="btn-cancel" onclick="closeM('m-stock')">取消</button><button id="st-del" class="btn-del" onclick="delStock()" style="display:none">刪除</button><button class="btn-save" onclick="saveStock()">儲存</button></div>
@@ -401,10 +401,10 @@ body:has(.modal-overlay.show){overflow:hidden;}
   <div class="modal-ttl" id="m-wealth-t">新增理財儲蓄</div>
   <div class="field"><label>類型</label><select id="w-kind" onchange="refreshWealthMoveOptions()"><option value="saving">預存計畫</option><option value="stock">存股投入</option></select></div>
   <div class="field"><label>存入項目</label><div style="display:flex;gap:6px;"><select id="w-target" onchange="syncWealthDestination();updateWealthPreview()" style="flex:1;"></select><button type="button" class="cc-newcat-btn" onclick="promptNewWealthTarget()" title="新增項目">+</button></div></div>
-  <div class="field"><label>存放位置</label><select id="w-to"></select></div>
+  <div class="field"><label>存放位置</label><div style="display:flex;gap:6px;"><select id="w-to" onchange="updateWealthStockFields()" style="flex:1;"></select><button type="button" class="cc-newcat-btn" onclick="promptNewSavingWhere('wealth')" title="新增存放位置">+</button></div></div>
   <div id="w-saving-stock-fields" style="display:none;">
     <div class="field"><label>證券戶成員</label><select id="w-stock-member" onchange="refreshWealthStockOptions(this.value)"></select></div>
-    <div class="field"><label>這次買入股票</label><select id="w-stock-id"></select></div>
+    <div class="field"><label>這次買入股票</label><div style="display:flex;gap:6px;"><select id="w-stock-id" style="flex:1;"></select><button type="button" class="cc-newcat-btn" onclick="promptNewLinkedStock('wealth')" title="新增股票">+</button></div></div>
     <div class="field"><label>買入股數</label><input id="w-shares" type="number" step="any" placeholder="例：10"/></div>
   </div>
   <div class="field"><label>金額 (NT$)</label><input id="w-amt" type="number" placeholder="0" oninput="updateWealthPreview()"/></div>
@@ -713,7 +713,7 @@ function renderFlow(){
 
 function renderSaving(){document.getElementById('sav-list').innerHTML=savings.map(s=>{const p=s.target?Math.min(100,Math.round(s.saved/s.target*100)):0,done=s.target>0&&s.saved>=s.target,stockBacked=isStockBackedSaving(s),linked=stocks.find(st=>st.id===Number(s.stockId));return `<div class="saving-card" onclick="openSavingDetail(${s.id})" style="cursor:pointer;"><div class="sc-hdr"><div class="sc-name"><i class="ti ti-pig-money" style="font-size:14px;vertical-align:-2px;margin-right:5px;color:var(--pink2-d);" aria-hidden="true"></i>${s.name}${s.where?`<div style="font-size:12px;color:var(--pink2-d);font-weight:600;margin-top:2px;">存放：${stockBacked?(s.stockMember||'蕭小姐')+'證券戶'+(linked?' · '+linked.name:''):s.where}</div>`:''}${stockBacked?`<div style="font-size:11px;color:var(--mint-d);font-weight:600;margin-top:3px;">已包含在持股市值，不重複計入總額</div>`:''}${s.note?`<div style="font-size:12px;color:var(--text-m);font-weight:400;margin-top:2px;">${s.note}</div>`:''}</div><div class="sc-pct${done?' done':''}">${p}%${done?' ✓':''}</div></div><div class="sc-bar-bg"><div class="sc-fill${done?' done':''}" style="width:${p}%"></div></div><div class="sc-foot"><span>已存 ${fmt(s.saved)}</span><span>目標 ${fmt(s.target)}${done?'':' · 差 '+fmt(Math.max(0,s.target-s.saved))}</span></div><div class="sc-actions"><button class="sc-btn" onclick="event.stopPropagation();openSavingContribution(${s.id})">新增一筆</button><button class="sc-btn" onclick="event.stopPropagation();openSavingDetail(${s.id})">查看明細</button><button class="sc-btn" onclick="event.stopPropagation();openSaving(${s.id})">編輯計畫</button></div></div>`;}).join('')||`<div class="empty">尚無預存計劃</div>`;}
 
-function renderStock(){const bm={};MEMBERS.forEach(m=>{bm[m]=stocks.filter(s=>s.member===m);});document.getElementById('stk-list').innerHTML=MEMBERS.map(m=>{const ms=bm[m];if(!ms.length)return'';const mp=ms.reduce((a,s)=>a+(s.curVal-s.cost),0);return `<div class="stk-card"><div class="stk-hdr"><div class="stk-name"><i class="ti ti-user-circle" style="font-size:16px;vertical-align:-3px;margin-right:5px;color:var(--mint-d);" aria-hidden="true"></i>${m}</div><div class="stk-pnl ${mp>=0?'pos':'neg'}">${mp>=0?'+':''}${fmt(mp)}</div></div>${ms.map(s=>`<div class="stk-row"><div class="stk-info"><div class="stk-sname">${s.name}</div><div class="stk-sub">${s.shares}張 · 成本${fmt(s.cost)} · 市值${fmt(s.curVal)}</div></div><div class="stk-pnl ${s.curVal>=s.cost?'pos':'neg'}">${s.curVal>=s.cost?'+':''}${fmt(s.curVal-s.cost)}</div><button class="iedit" onclick="openStock(${s.id},'${m}')">✎</button></div>`).join('')}<button onclick="openStock(null,'${m}')" style="background:none;border:none;color:var(--mint-d);font-size:13px;cursor:pointer;padding:8px 0;font-weight:600;">+ 新增 ${m} 持股</button></div>`;}).join('')||`<div class="empty">尚無持股記錄</div>`;}
+function renderStock(){const bm={};MEMBERS.forEach(m=>{bm[m]=stocks.filter(s=>s.member===m);});document.getElementById('stk-list').innerHTML=MEMBERS.map(m=>{const ms=bm[m];if(!ms.length)return'';const mp=ms.reduce((a,s)=>a+(s.curVal-s.cost),0);return `<div class="stk-card"><div class="stk-hdr"><div class="stk-name"><i class="ti ti-user-circle" style="font-size:16px;vertical-align:-3px;margin-right:5px;color:var(--mint-d);" aria-hidden="true"></i>${m}</div><div class="stk-pnl ${mp>=0?'pos':'neg'}">${mp>=0?'+':''}${fmt(mp)}</div></div>${ms.map(s=>`<div class="stk-row"><div class="stk-info"><div class="stk-sname">${s.name}</div><div class="stk-sub">${s.shares}股 · 成本${fmt(s.cost)} · 市值${fmt(s.curVal)}</div></div><div class="stk-pnl ${s.curVal>=s.cost?'pos':'neg'}">${s.curVal>=s.cost?'+':''}${fmt(s.curVal-s.cost)}</div><button class="iedit" onclick="openStock(${s.id},'${m}')">✎</button></div>`).join('')}<button onclick="openStock(null,'${m}')" style="background:none;border:none;color:var(--mint-d);font-size:13px;cursor:pointer;padding:8px 0;font-weight:600;">+ 新增 ${m} 持股</button></div>`;}).join('')||`<div class="empty">尚無持股記錄</div>`;}
 
 function renderWealth(){
   const moves=wealthMoves.filter(w=>{const d=new Date((w.date||'')+'T00:00:00');return d.getFullYear()===cY&&d.getMonth()===cM;}).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
@@ -849,7 +849,7 @@ function refreshWealthMoveOptions(selectedTarget,selectedTo){
   const kind=document.getElementById('w-kind').value;
   const targets=kind==='saving'?savings.map(s=>({id:s.id,name:s.name,to:s.where||'預存帳戶'})):stocks.map(s=>({id:s.id,name:s.member+' · '+s.name,to:s.name}));
   document.getElementById('w-target').innerHTML=(targets.length?targets:[{id:0,name:kind==='saving'?'其他預存':'其他存股',to:kind==='saving'?'預存帳戶':'證券帳戶'}]).map(t=>`<option value="${t.id}"${String(t.id)===String(selectedTarget)?' selected':''}>${t.name}</option>`).join('');
-  const tos=kind==='saving'?[...new Set(['現金',...accts.map(a=>a.name),'存股'])]:[...new Set(['證券帳戶',...targets.map(t=>t.to)])];
+  const customLocations=savingWhereOptions.filter(o=>!/存股|股票/.test(String(o))),tos=kind==='saving'?[...new Set(['現金',...accts.map(a=>a.name),...customLocations,'存股'])]:[...new Set(['證券帳戶',...targets.map(t=>t.to)])];
   document.getElementById('w-to').innerHTML=tos.map(x=>`<option${x===selectedTo?' selected':''}>${x}</option>`).join('');
   if(!selectedTo)syncWealthDestination();
   updateWealthStockFields();
@@ -861,7 +861,8 @@ function syncWealthDestination(){
   if(target){const to=kind==='saving'?(target.where||'預存帳戶'):target.name;if([...document.getElementById('w-to').options].some(o=>o.value===to))document.getElementById('w-to').value=to;}updateWealthStockFields();
 }
 function refreshWealthStockOptions(member,selectedId){const list=stocks.filter(s=>s.member===member),sel=document.getElementById('w-stock-id');sel.innerHTML=list.map(s=>`<option value="${s.id}"${String(s.id)===String(selectedId)?' selected':''}>${s.name}</option>`).join('')||'<option value="">請先新增此成員的持股</option>';}
-function updateWealthStockFields(selectedMember,selectedStockId){const kind=document.getElementById('w-kind').value,target=savings.find(s=>s.id===Number(document.getElementById('w-target').value)),show=kind==='saving'&&target&&isStockBackedSaving(target),wrap=document.getElementById('w-saving-stock-fields');wrap.style.display=show?'block':'none';if(!show)return;const member=selectedMember||target.stockMember||'蕭小姐',memberSel=document.getElementById('w-stock-member');memberSel.innerHTML=MEMBERS.map(m=>`<option${m===member?' selected':''}>${m}</option>`).join('');refreshWealthStockOptions(member,selectedStockId||target.stockId);}
+function updateWealthStockFields(selectedMember,selectedStockId){const kind=document.getElementById('w-kind').value,target=savings.find(s=>s.id===Number(document.getElementById('w-target').value)),show=kind==='saving'&&target&&(isStockBackedSaving(target)||document.getElementById('w-to').value==='存股'),wrap=document.getElementById('w-saving-stock-fields');wrap.style.display=show?'block':'none';if(!show)return;const member=selectedMember||target.stockMember||'蕭小姐',memberSel=document.getElementById('w-stock-member');memberSel.innerHTML=MEMBERS.map(m=>`<option${m===member?' selected':''}>${m}</option>`).join('');refreshWealthStockOptions(member,selectedStockId||target.stockId);}
+function promptNewLinkedStock(context){const member=document.getElementById(context==='saving'?'s-stock-member':'w-stock-member').value;openInlinePrompt('新增 '+member+' 的股票','例：0056',function(val){if(!val||!val.trim())return;const name=val.trim();let st=stocks.find(s=>s.member===member&&s.name===name);if(!st){st={id:nid++,member,name,shares:0,cost:0,curVal:0};stocks.push(st);pa();}if(context==='saving'){refreshSavingStockOptions(member,st.id);document.getElementById('s-stock-id').value=String(st.id);}else{refreshWealthStockOptions(member,st.id);document.getElementById('w-stock-id').value=String(st.id);}showToast('已新增「'+member+' · '+name+'」');});}
 function promptNewWealthTarget(){
   const kind=document.getElementById('w-kind').value;
   openInlinePrompt(kind==='saving'?'新增預存計畫':'新增存股項目',kind==='saving'?'例：明年保險費':'例：0050',function(val){
@@ -889,8 +890,9 @@ function applyWealthDelta(w,sign){
   if(!target)return;if(w.kind==='saving'){target.saved=Math.max(0,(Number(target.saved)||0)+sign*w.amt);if(w.stockId){const st=stocks.find(s=>s.id===Number(w.stockId));if(st){st.cost=Math.max(0,(Number(st.cost)||0)+sign*w.amt);st.curVal=Math.max(0,(Number(st.curVal)||0)+sign*w.amt);st.shares=Math.max(0,(Number(st.shares)||0)+sign*(Number(w.shares)||0));}}}else target.cost=Math.max(0,(Number(target.cost)||0)+sign*w.amt);
 }
 function saveWealthMove(){
-  const kind=document.getElementById('w-kind').value,targetId=Number(document.getElementById('w-target').value),targetName=document.getElementById('w-target').selectedOptions[0].textContent,to=document.getElementById('w-to').value,amt=parseFloat(document.getElementById('w-amt').value)||0,date=document.getElementById('w-date').value,note=document.getElementById('w-note').value.trim(),savingTarget=savings.find(s=>s.id===targetId),stockLinked=kind==='saving'&&savingTarget&&isStockBackedSaving(savingTarget),stockMember=stockLinked?document.getElementById('w-stock-member').value:'',stockId=stockLinked?Number(document.getElementById('w-stock-id').value)||null:null,shares=stockLinked?(parseFloat(document.getElementById('w-shares').value)||0):0;
+  const kind=document.getElementById('w-kind').value,targetId=Number(document.getElementById('w-target').value),targetName=document.getElementById('w-target').selectedOptions[0].textContent,to=document.getElementById('w-to').value,amt=parseFloat(document.getElementById('w-amt').value)||0,date=document.getElementById('w-date').value,note=document.getElementById('w-note').value.trim(),savingTarget=savings.find(s=>s.id===targetId),stockLinked=kind==='saving'&&savingTarget&&(isStockBackedSaving(savingTarget)||to==='存股'),stockMember=stockLinked?document.getElementById('w-stock-member').value:'',stockId=stockLinked?Number(document.getElementById('w-stock-id').value)||null:null,shares=stockLinked?(parseFloat(document.getElementById('w-shares').value)||0):0;
   if(!amt||!date){showToast('請填寫金額和日期','w');return;}if(stockLinked&&!stockId){showToast('請選擇這次買入的股票','w');return;}const move={id:eWId||nid++,kind,targetId,targetName,to,amt,date,note,stockMember,stockId,shares};
+  if(stockLinked&&savingTarget){savingTarget.where='存股';savingTarget.locationType='stock';savingTarget.stockMember=stockMember;if(!savingTarget.stockId)savingTarget.stockId=stockId;}
   if(eWId){const old=wealthMoves.find(w=>w.id===eWId);if(old){applyWealthDelta(old,-1);Object.assign(old,move);applyWealthDelta(old,1);}}
   else{wealthMoves.push(move);applyWealthDelta(move,1);}pa();closeM('m-wealth');renderHome();if(curPg==='wealth')renderWealth();showToast('理財儲蓄已儲存');eWId=null;
 }
@@ -916,9 +918,10 @@ function openSavingContribution(id){
 }
 
 function refreshSavingWhereOptions(selected){
-  const normalized=/存股|股票/.test(String(selected||''))?'存股':selected,options=[...new Set(['現金',...accts.map(a=>a.name),'存股'])];
+  const normalized=/存股|股票/.test(String(selected||''))?'存股':selected,custom=savingWhereOptions.filter(o=>!/存股|股票/.test(String(o))),options=[...new Set(['現金',...accts.map(a=>a.name),...custom,'存股'])];
   document.getElementById('s-where').innerHTML=options.map(o=>`<option${o===normalized?' selected':''}>${o}</option>`).join('');
 }
+function promptNewSavingWhere(context){openInlinePrompt('新增存放位置','例：新的銀行帳戶',function(val){if(!val||!val.trim())return;const name=val.trim();if(!savingWhereOptions.includes(name))savingWhereOptions.push(name);pa();if(context==='wealth'){const sel=document.getElementById('w-to'),opt=document.createElement('option');opt.textContent=name;sel.appendChild(opt);sel.value=name;updateWealthStockFields();}else{refreshSavingWhereOptions(name);toggleSavingStockFields();}showToast('已新增存放位置「'+name+'」');});}
 function refreshSavingStockOptions(member,selectedId){const list=stocks.filter(s=>s.member===member),sel=document.getElementById('s-stock-id');sel.innerHTML='<option value="">每次新增時選擇</option>'+list.map(s=>`<option value="${s.id}"${String(s.id)===String(selectedId)?' selected':''}>${s.name}</option>`).join('');}
 function toggleSavingStockFields(selectedMember,selectedStockId){const show=document.getElementById('s-where').value==='存股',wrap=document.getElementById('s-stock-fields');wrap.style.display=show?'block':'none';if(!show)return;const member=selectedMember||'蕭小姐',memberSel=document.getElementById('s-stock-member');memberSel.innerHTML=MEMBERS.map(m=>`<option${m===member?' selected':''}>${m}</option>`).join('');refreshSavingStockOptions(member,selectedStockId);}
 function openSaving(id){
