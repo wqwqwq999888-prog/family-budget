@@ -536,7 +536,9 @@ let bigitems=ld('hbv4_bigitems',[]);
 let ccbills=ld('hbv4_ccbills',[]);
 let cats=ld('hbv4_cats',['小孩學費','美食基金','其他零花錢','信用貸款','其他固定支出','貓咪花費','游先生餐費','孝親費','緊急預備金','生活雜支','存股','水電費','蛋白粉','ETF','其他花費']);
 let autoIncome=ld('hbv4_autoinc',[{id:1,name:'游先生薪資',amt:40000,acct:'現金'},{id:2,name:'蕭小姐薪資',amt:38000,acct:'農會'},{id:3,name:'育兒津貼',amt:11000,acct:'郵局'}]);
-let incomeSources=ld('hbv4_income_sources',['游先生','蕭小姐','鬥陣買','育兒津貼']);
+const DEFAULT_INCOME_SOURCES=['游先生','蕭小姐','鬥陣買','育兒津貼'];
+let incomeSources=ld('hbv4_income_sources',DEFAULT_INCOME_SOURCES);
+if(!ld('hbv4_income_sources_cleaned',false)){incomeSources=[...DEFAULT_INCOME_SOURCES];sv('hbv4_income_sources',incomeSources);sv('hbv4_income_sources_cleaned',true);}
 let savingWhereOptions=ld('hbv4_savewhere',['現金','農會','郵局','玉山','台新','存股-0050']);
 let wealthMoves=ld('hbv4_wealthmoves',[]);
 let nid=ld('hbv4_nid',1000);
@@ -596,17 +598,15 @@ function catIcon(name){
 }
 function pct(a,b){return b?Math.min(200,Math.round(a/b*100)):0;}
 function incomeSourceOf(item){
-  if(item&&item.source)return item.source;
+  if(item&&item.source)return incomeSources.includes(item.source)?item.source:'其他收入';
   const name=String(item&&item.name||'').trim();
   if(name.includes('游先生'))return'游先生';
   if(name.includes('蕭小姐'))return'蕭小姐';
   if(name.includes('鬥陣買'))return'鬥陣買';
   if(name.includes('育兒')||name.includes('津貼'))return'育兒津貼';
-  return name||'其他收入';
+  return'其他收入';
 }
 function refreshIncomeSourceOptions(selected){
-  const discovered=[...entries.filter(e=>e.type==='income').map(incomeSourceOf),...autoIncome.map(incomeSourceOf)];
-  incomeSources=[...new Set([...incomeSources,...discovered].filter(Boolean))];
   if(selected&&!incomeSources.includes(selected))incomeSources.push(selected);
   document.getElementById('i-source').innerHTML=incomeSources.map(s=>`<option${s===selected?' selected':''}>${s}</option>`).join('');
 }
