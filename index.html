@@ -303,6 +303,8 @@ body:has(.modal-overlay.show){overflow:hidden;}
   <div class="ss-strip" id="ann-strip"></div>
   <div class="sec-hdr"><div class="sec-title"><span class="sec-dot"></span>每月收支</div></div>
   <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-bottom:14px;" id="ann-months"></div>
+  <div class="sec-hdr"><div class="sec-title"><span class="sec-dot"></span>收入來源排行</div></div>
+  <div id="ann-income"></div>
   <div class="sec-hdr"><div class="sec-title"><span class="sec-dot"></span>支出類別排行</div></div>
   <div id="ann-cats"></div>
   <div class="sec-hdr" style="margin-top:8px;"><div class="sec-title"><span class="sec-dot"></span>無預警花費（無預算類別）</div></div>
@@ -359,9 +361,10 @@ body:has(.modal-overlay.show){overflow:hidden;}
 
 <div id="m-income" class="modal-overlay"><div class="modal-box">
   <div class="modal-ttl" id="m-income-t">新增收入</div>
-  <div class="field"><label>名稱</label><input id="i-name" placeholder="例：薪資"/></div>
+  <div class="field"><label>收入來源</label><div style="display:flex;gap:6px;"><select id="i-source" style="flex:1;"></select><button type="button" class="cc-newcat-btn" onclick="promptNewIncomeSource()" title="新增收入來源">+</button></div></div>
   <div class="field"><label>金額 (NT$)</label><input id="i-amt" type="number" placeholder="0"/></div>
   <div class="field"><label>存入帳戶</label><select id="i-pay"></select></div>
+  <div class="field"><label>收入說明／備註（選填）</label><input id="i-note" placeholder="例：紅利、獎勵金、9/16 訂單收入"/></div>
   <div class="mbtns"><button class="btn-cancel" onclick="closeM('m-income')">取消</button><button id="i-del" class="btn-del" onclick="delIncome()" style="display:none">刪除</button><button class="btn-save" onclick="saveIncome()">儲存</button></div>
 </div></div>
 
@@ -533,11 +536,12 @@ let bigitems=ld('hbv4_bigitems',[]);
 let ccbills=ld('hbv4_ccbills',[]);
 let cats=ld('hbv4_cats',['小孩學費','美食基金','其他零花錢','信用貸款','其他固定支出','貓咪花費','游先生餐費','孝親費','緊急預備金','生活雜支','存股','水電費','蛋白粉','ETF','其他花費']);
 let autoIncome=ld('hbv4_autoinc',[{id:1,name:'游先生薪資',amt:40000,acct:'現金'},{id:2,name:'蕭小姐薪資',amt:38000,acct:'農會'},{id:3,name:'育兒津貼',amt:11000,acct:'郵局'}]);
+let incomeSources=ld('hbv4_income_sources',['游先生','蕭小姐','鬥陣買','育兒津貼']);
 let savingWhereOptions=ld('hbv4_savewhere',['現金','農會','郵局','玉山','台新','存股-0050']);
 let wealthMoves=ld('hbv4_wealthmoves',[]);
 let nid=ld('hbv4_nid',1000);
 let eAId=null,eEId=null,eSId=null,eStId=null,eBId=null,eAiId=null,eCCId=null,eWId=null;
-function pa(){sv('hbv4_accts',accts);sv('hbv4_entries',entries);sv('hbv4_budgets',budgets);sv('hbv4_budgethist',budgetHistory);sv('hbv4_savings',savings);sv('hbv4_stocks',stocks);sv('hbv4_nid',nid);sv('hbv4_cats',cats);sv('hbv4_bigitems',bigitems);sv('hbv4_ccbills',ccbills);sv('hbv4_autoinc',autoIncome);sv('hbv4_savewhere',savingWhereOptions);sv('hbv4_wealthmoves',wealthMoves);}
+function pa(){sv('hbv4_accts',accts);sv('hbv4_entries',entries);sv('hbv4_budgets',budgets);sv('hbv4_budgethist',budgetHistory);sv('hbv4_savings',savings);sv('hbv4_stocks',stocks);sv('hbv4_nid',nid);sv('hbv4_cats',cats);sv('hbv4_bigitems',bigitems);sv('hbv4_ccbills',ccbills);sv('hbv4_autoinc',autoIncome);sv('hbv4_income_sources',incomeSources);sv('hbv4_savewhere',savingWhereOptions);sv('hbv4_wealthmoves',wealthMoves);}
 function migrateETFCategory(){
   if(!cats.includes('ETF'))return;
   entries.forEach(e=>{if(e.cat==='ETF')e.cat='存股';});
@@ -591,6 +595,26 @@ function catIcon(name){
   return map[name]||'ti-tag';
 }
 function pct(a,b){return b?Math.min(200,Math.round(a/b*100)):0;}
+function incomeSourceOf(item){
+  if(item&&item.source)return item.source;
+  const name=String(item&&item.name||'').trim();
+  if(name.includes('游先生'))return'游先生';
+  if(name.includes('蕭小姐'))return'蕭小姐';
+  if(name.includes('鬥陣買'))return'鬥陣買';
+  if(name.includes('育兒')||name.includes('津貼'))return'育兒津貼';
+  return name||'其他收入';
+}
+function refreshIncomeSourceOptions(selected){
+  const discovered=[...entries.filter(e=>e.type==='income').map(incomeSourceOf),...autoIncome.map(incomeSourceOf)];
+  incomeSources=[...new Set([...incomeSources,...discovered].filter(Boolean))];
+  if(selected&&!incomeSources.includes(selected))incomeSources.push(selected);
+  document.getElementById('i-source').innerHTML=incomeSources.map(s=>`<option${s===selected?' selected':''}>${s}</option>`).join('');
+}
+function promptNewIncomeSource(){
+  openInlinePrompt('新增收入來源','例：租金收入',function(val){
+    if(!val||!val.trim())return;const source=val.trim();if(!incomeSources.includes(source))incomeSources.push(source);pa();refreshIncomeSourceOptions(source);showToast('已新增收入來源「'+source+'」');
+  });
+}
 function closeM(id){document.getElementById(id).classList.remove('show');}
 function showToast(msg,t){const el=document.getElementById('toast');el.textContent=msg;el.style.display='block';el.style.borderColor=t==='w'?'var(--rose)':'var(--mint-d)';el.style.color=t==='w'?'var(--rose-d)':'var(--mint-d)';setTimeout(()=>{el.style.display='none';},2400);}
 function showEnc(){const e=document.getElementById('enc');e.textContent=ENC[Math.floor(Math.random()*ENC.length)];e.style.display='block';setTimeout(()=>{e.style.display='none';},3000);}
@@ -598,7 +622,7 @@ function showEnc(){const e=document.getElementById('enc');e.textContent=ENC[Math
 function ensureAutoIncome(y,m){
   const has=entries.some(e=>e.year===y&&e.month===m&&e.type==='income'&&e._auto);
   if(!has&&autoIncome.length){
-    autoIncome.forEach(ai=>{entries.push({id:nid++,year:y,month:m,type:'income',name:ai.name,amt:ai.amt,acct:ai.acct,note:'',_auto:true});});
+    autoIncome.forEach(ai=>{entries.push({id:nid++,year:y,month:m,type:'income',source:incomeSourceOf(ai),name:ai.name,amt:ai.amt,acct:ai.acct,note:ai.note||'',_auto:true});});
     pa();
   }
 }
@@ -633,6 +657,14 @@ function getCatSources(year,month,cat){
     if((c.restCat||'其他花費')===cat&&rest>0)sources.push({label:c.name+' · ',amt:rest,kind:'cc'});
   });
   return sources;
+}
+function getBigMonthTotals(year,month){
+  const prefix=year+'-'+String(month+1).padStart(2,'0')+'-';
+  return bigitems.filter(b=>(b.date||'').startsWith(prefix)).reduce((tot,b)=>{
+    if(b.type==='income')tot.income+=Number(b.amt)||0;
+    if(b.type==='expense')tot.expense+=Number(b.amt)||0;
+    return tot;
+  },{income:0,expense:0});
 }
 
 function renderHome(){
@@ -693,7 +725,7 @@ function renderFlow(){
   const ti=inc.reduce((a,e)=>a+e.amt,0);
   const te=Object.values(cT).reduce((a,v)=>a+v,0);
   document.getElementById('flow-strip').innerHTML=`<div class="ss"><div class="ss-l">收入</div><div class="ss-v pos">+${fmt(ti)}</div></div><div class="ss"><div class="ss-l">支出</div><div class="ss-v neg">-${fmt(te)}</div></div><div class="ss"><div class="ss-l">結餘</div><div class="ss-v nu">${fmt(ti-te)}</div></div>`;
-  document.getElementById('inc-list').innerHTML=inc.length?inc.map(e=>`<div class="entry-row"><div class="eico inc">↓</div><div class="einfo"><div class="ename">${e.name}${e._auto?'<span style="font-size:10px;color:var(--mint-d);margin-left:5px;">固定</span>':''}</div><div class="esub">${e.acct}</div></div><div class="eamt inc">+${fmt(e.amt)}</div><button class="iedit" onclick="openEntry(${e.id},'income')">✎</button></div>`).join(''):`<div class="empty">尚無收入記錄</div>`;
+  document.getElementById('inc-list').innerHTML=inc.length?inc.map(e=>`<div class="entry-row"><div class="eico inc">↓</div><div class="einfo"><div class="ename">${incomeSourceOf(e)}${e._auto?'<span style="font-size:10px;color:var(--mint-d);margin-left:5px;">固定</span>':''}</div><div class="esub">${e.acct}${e.note?' · '+e.note:''}</div></div><div class="eamt inc">+${fmt(e.amt)}</div><button class="iedit" onclick="openEntry(${e.id},'income')">✎</button></div>`).join(''):`<div class="empty">尚無收入記錄</div>`;
 
   document.getElementById('cc-list').innerHTML=ccThisMonth.length?ccThisMonth.map(c=>{
     const rest=ccRestAmount(c);
@@ -766,9 +798,15 @@ function renderAnnual(){
   const ti=ye.filter(e=>e.type==='income').reduce((a,e)=>a+e.amt,0)+bigInc;
   const teTotal=Object.values(ccCatTotals).reduce((a,v)=>a+v,0)+bigExp;
   document.getElementById('ann-strip').innerHTML=`<div class="ss"><div class="ss-l">年度收入</div><div class="ss-v pos">+${fmt(ti)}</div></div><div class="ss"><div class="ss-l">年度支出</div><div class="ss-v neg">-${fmt(teTotal)}</div></div><div class="ss"><div class="ss-l">年度結餘</div><div class="ss-v nu">${fmt(ti-teTotal)}</div></div>`;
-  const mx=Math.max(...MN.map((_,i)=>{const a=ye.filter(e=>e.month===i&&e.type==='income').reduce((a,e)=>a+e.amt,0);const cT=getCatTotals(cY,i);const b=Object.values(cT).reduce((a,v)=>a+v,0);return Math.max(a,b);}),1);
-  document.getElementById('ann-months').innerHTML=MN.map((ml,mi)=>{const inc=ye.filter(e=>e.month===mi&&e.type==='income').reduce((a,e)=>a+e.amt,0);const cT=getCatTotals(cY,mi);const exp=Object.values(cT).reduce((a,v)=>a+v,0);if(!inc&&!exp)return'';const net=inc-exp;return `<div class="ann-mc${net<0?' over':''}"><div class="ann-mm">${ml}</div><div style="display:flex;height:6px;margin:4px 0;border-radius:3px;overflow:hidden;background:var(--nude);"><div style="width:${Math.round(inc/mx*50)}%;background:var(--mint-d);border-radius:3px 0 0 3px;"></div><div style="width:${Math.round(exp/mx*50)}%;background:var(--rose);"></div></div><div class="ann-net ${net>=0?'pos':'neg'}">${net>=0?'+':''}${fmt(net)}</div></div>`;}).join('');
-  const sorted=Object.entries(ccCatTotals).filter(([k,v])=>v>0).sort((a,b)=>b[1]-a[1]);const maxC=sorted[0]?sorted[0][1]:1;
+  const mx=Math.max(...MN.map((_,i)=>{const big=getBigMonthTotals(cY,i);const a=ye.filter(e=>e.month===i&&e.type==='income').reduce((a,e)=>a+e.amt,0)+big.income;const cT=getCatTotals(cY,i);const b=Object.values(cT).reduce((a,v)=>a+v,0)+big.expense;return Math.max(a,b);}),1);
+  document.getElementById('ann-months').innerHTML=MN.map((ml,mi)=>{const big=getBigMonthTotals(cY,mi);const inc=ye.filter(e=>e.month===mi&&e.type==='income').reduce((a,e)=>a+e.amt,0)+big.income;const cT=getCatTotals(cY,mi);const exp=Object.values(cT).reduce((a,v)=>a+v,0)+big.expense;if(!inc&&!exp)return'';const net=inc-exp;return `<div class="ann-mc${net<0?' over':''}"><div class="ann-mm">${ml}</div><div style="display:flex;height:6px;margin:4px 0;border-radius:3px;overflow:hidden;background:var(--nude);"><div style="width:${Math.round(inc/mx*50)}%;background:var(--mint-d);border-radius:3px 0 0 3px;"></div><div style="width:${Math.round(exp/mx*50)}%;background:var(--rose);"></div></div><div class="ann-net ${net>=0?'pos':'neg'}">${net>=0?'+':''}${fmt(net)}</div></div>`;}).join('');
+  const incomeTotals={};
+  ye.filter(e=>e.type==='income').forEach(e=>{const name=incomeSourceOf(e);incomeTotals[name]=(incomeTotals[name]||0)+(Number(e.amt)||0);});
+  bigYear.filter(b=>b.type==='income').forEach(b=>{const name='重大收入 · '+(b.name||'未命名');incomeTotals[name]=(incomeTotals[name]||0)+(Number(b.amt)||0);});
+  const incomeSorted=Object.entries(incomeTotals).filter(([k,v])=>v>0).sort((a,b)=>b[1]-a[1]);const maxI=incomeSorted[0]?incomeSorted[0][1]:1;
+  document.getElementById('ann-income').innerHTML=incomeSorted.length?incomeSorted.map(([k,v])=>`<div class="cat-row"><div class="cat-bar" style="width:${Math.round(v/maxI*80)}px;background:var(--mint-d)"></div><div class="cat-n">${k}</div><div class="cat-a pos">+${fmt(v)}</div></div>`).join(''):`<div class="empty">尚無收入</div>`;
+  const annualCatTotals={...ccCatTotals};if(bigExp>0)annualCatTotals['年度重大支出']=(annualCatTotals['年度重大支出']||0)+bigExp;
+  const sorted=Object.entries(annualCatTotals).filter(([k,v])=>v>0).sort((a,b)=>b[1]-a[1]);const maxC=sorted[0]?sorted[0][1]:1;
   const colors=['var(--rose)','var(--warn)','var(--mint-d)','var(--lavender)','var(--lav-d)'];
   document.getElementById('ann-cats').innerHTML=sorted.length?sorted.map(([k,v],i)=>`<div class="cat-row"><div class="cat-bar" style="width:${Math.round(v/maxC*80)}px;background:${colors[i%colors.length]}"></div><div class="cat-n">${k}</div><div class="cat-a">${fmt(v)}</div></div>`).join(''):`<div class="empty">尚無支出</div>`;
   const unbudgeted=Object.entries(unbudgetedByMonth).filter(([k,v])=>v>0).sort((a,b)=>b[1]-a[1]);
@@ -852,10 +890,10 @@ function handleCatSelectChange(sel){
     });
   }
 }
-function openEntry(id,type){eEId=id;document.getElementById('e-cat').innerHTML=catOptionsHTML();document.getElementById('e-cat').onchange=function(){handleCatSelectChange(this);};const po=payOptionsHTML();document.getElementById('e-pay').innerHTML=po;document.getElementById('i-pay').innerHTML=po;document.getElementById('e-pay').onchange=function(){handlePaySelectChange(this);};document.getElementById('i-pay').onchange=function(){handlePaySelectChange(this);};if(type==='income'){if(id){const e=entries.find(x=>x.id===id);if(e){document.getElementById('i-name').value=e.name;document.getElementById('i-amt').value=e.amt;document.getElementById('i-pay').value=e.acct;document.getElementById('m-income-t').textContent='編輯收入';document.getElementById('i-del').style.display='block';}}else{document.getElementById('i-name').value='';document.getElementById('i-amt').value='';document.getElementById('m-income-t').textContent='新增收入';document.getElementById('i-del').style.display='none';}document.getElementById('m-income').classList.add('show');}else{if(id){const e=entries.find(x=>x.id===id);if(e){document.getElementById('e-cat').value=e.cat;document.getElementById('e-amt').value=e.amt;document.getElementById('e-pay').value=e.acct;document.getElementById('e-note').value=e.note||'';document.getElementById('m-entry-t').textContent='編輯支出';document.getElementById('e-del').style.display='block';}}else{document.getElementById('e-amt').value='';document.getElementById('e-note').value='';document.getElementById('m-entry-t').textContent='新增支出';document.getElementById('e-del').style.display='none';}document.getElementById('m-entry').classList.add('show');}}
+function openEntry(id,type){eEId=id;document.getElementById('e-cat').innerHTML=catOptionsHTML();document.getElementById('e-cat').onchange=function(){handleCatSelectChange(this);};const po=payOptionsHTML();document.getElementById('e-pay').innerHTML=po;document.getElementById('i-pay').innerHTML=po;document.getElementById('e-pay').onchange=function(){handlePaySelectChange(this);};document.getElementById('i-pay').onchange=function(){handlePaySelectChange(this);};if(type==='income'){const e=id?entries.find(x=>x.id===id):null;refreshIncomeSourceOptions(e?incomeSourceOf(e):incomeSources[0]);if(e){document.getElementById('i-amt').value=e.amt;document.getElementById('i-pay').value=e.acct;document.getElementById('i-note').value=e.note||'';document.getElementById('m-income-t').textContent='編輯收入';document.getElementById('i-del').style.display='block';}else{document.getElementById('i-amt').value='';document.getElementById('i-note').value='';document.getElementById('m-income-t').textContent='新增收入';document.getElementById('i-del').style.display='none';}document.getElementById('m-income').classList.add('show');}else{if(id){const e=entries.find(x=>x.id===id);if(e){document.getElementById('e-cat').value=e.cat;document.getElementById('e-amt').value=e.amt;document.getElementById('e-pay').value=e.acct;document.getElementById('e-note').value=e.note||'';document.getElementById('m-entry-t').textContent='編輯支出';document.getElementById('e-del').style.display='block';}}else{document.getElementById('e-amt').value='';document.getElementById('e-note').value='';document.getElementById('m-entry-t').textContent='新增支出';document.getElementById('e-del').style.display='none';}document.getElementById('m-entry').classList.add('show');}}
 function saveEntry(){const cat=document.getElementById('e-cat').value,amt=parseFloat(document.getElementById('e-amt').value)||0,acct=document.getElementById('e-pay').value,note=document.getElementById('e-note').value.trim();if(!amt){showToast('請填寫金額','w');return;}if(eEId){const e=entries.find(x=>x.id===eEId);if(e){e.cat=cat;e.amt=amt;e.acct=acct;e.note=note;}}else entries.push({id:nid++,year:cY,month:cM,type:'expense',cat,amt,acct,note});pa();closeM('m-entry');renderFlow();renderHome();const sp=entries.filter(e=>e.year===cY&&e.month===cM&&e.type==='expense'&&e.cat===cat).reduce((a,e)=>a+e.amt,0);if(budgets[cat]&&sp>budgets[cat])showToast(cat+' 超支了！','w');else showToast(eEId?'已更新':'已新增');eEId=null;}
 function delEntry(){if(eEId){entries=entries.filter(e=>e.id!==eEId);pa();closeM('m-entry');renderFlow();renderHome();showToast('已刪除');eEId=null;}}
-function saveIncome(){const name=document.getElementById('i-name').value.trim(),amt=parseFloat(document.getElementById('i-amt').value)||0,acct=document.getElementById('i-pay').value;if(!name||!amt){showToast('請填寫名稱和金額','w');return;}if(eEId){const e=entries.find(x=>x.id===eEId);if(e){e.name=name;e.amt=amt;e.acct=acct;}}else entries.push({id:nid++,year:cY,month:cM,type:'income',name,amt,acct,note:''});pa();closeM('m-income');renderFlow();renderHome();showToast(eEId?'已更新':'已新增');eEId=null;}
+function saveIncome(){const source=document.getElementById('i-source').value,amt=parseFloat(document.getElementById('i-amt').value)||0,acct=document.getElementById('i-pay').value,note=document.getElementById('i-note').value.trim();if(!source||!amt){showToast('請選擇收入來源並填寫金額','w');return;}if(eEId){const e=entries.find(x=>x.id===eEId);if(e){e.source=source;e.name=source;e.amt=amt;e.acct=acct;e.note=note;}}else entries.push({id:nid++,year:cY,month:cM,type:'income',source,name:source,amt,acct,note});if(!incomeSources.includes(source))incomeSources.push(source);pa();closeM('m-income');renderFlow();renderHome();showToast(eEId?'已更新':'已新增');eEId=null;}
 function delIncome(){if(eEId){entries=entries.filter(e=>e.id!==eEId);pa();closeM('m-income');renderFlow();renderHome();showToast('已刪除');eEId=null;}}
 
 function refreshWealthMoveOptions(selectedTarget,selectedTo){
@@ -1139,9 +1177,12 @@ function exportPDF(){
   const ti=ye.filter(e=>e.type==='income').reduce((a,e)=>a+e.amt,0)+bigInc;
   const ccCatTotals={};for(let m=0;m<12;m++){const cT=getCatTotals(cY,m);Object.entries(cT).forEach(([k,v])=>{ccCatTotals[k]=(ccCatTotals[k]||0)+v;});}
   const te=Object.values(ccCatTotals).reduce((a,v)=>a+v,0)+bigExp;
-  const mr=MN.map((ml,mi)=>{const inc=ye.filter(e=>e.month===mi&&e.type==='income').reduce((a,e)=>a+e.amt,0);const cT=getCatTotals(cY,mi);const exp=Object.values(cT).reduce((a,v)=>a+v,0);if(!inc&&!exp)return'';return`<tr><td>${ml}</td><td style="color:#4A8A76">+${fmt(inc)}</td><td style="color:#C45A7A">-${fmt(exp)}</td><td style="color:${inc-exp>=0?'#4A8A76':'#C45A7A'};font-weight:600">${fmt(inc-exp)}</td></tr>`;}).join('');
-  const cr=Object.entries(ccCatTotals).filter(([k,v])=>v>0).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${k}</td><td>${fmt(budgets[k]||0)}</td><td style="font-weight:600">${fmt(v)}</td><td style="color:${v>(budgets[k]||0)?'#C45A7A':'#4A8A76'}">${v>(budgets[k]||0)?'超支 '+fmt(v-(budgets[k]||0)):'剩 '+fmt((budgets[k]||0)-v)}</td></tr>`).join('');
-  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${cY}年度家庭財務報告</title><style>body{font-family:sans-serif;padding:32px;color:#5A3040;max-width:700px;margin:0 auto;background:#FFF8F9}h1{font-size:22px;color:#E8799A}h2{font-size:16px;margin:20px 0 8px;border-bottom:2px solid #F2C4D0;padding-bottom:4px;color:#C45A7A}.sum{display:flex;gap:16px;margin:12px 0}.sb{flex:1;border-radius:12px;padding:12px;text-align:center}.sl{font-size:12px;color:#9A6878}.sv{font-size:18px;font-weight:bold;margin-top:4px}table{width:100%;border-collapse:collapse;font-size:14px}th{background:#E8799A;color:#fff;padding:7px 8px;text-align:left}td{padding:6px 8px;border-bottom:1px solid #F5E6EA}</style></head><body><h1>家庭帳本 ${cY} 年度報告</h1><p style="color:#9A6878;font-size:13px">匯出：${new Date().toLocaleDateString('zh-TW')}</p><div class="sum"><div class="sb" style="background:#E8F4F0"><div class="sl">年度總收入</div><div class="sv" style="color:#4A8A76">+${fmt(ti)}</div></div><div class="sb" style="background:#F9E8ED"><div class="sl">年度總支出</div><div class="sv" style="color:#C45A7A">-${fmt(te)}</div></div><div class="sb" style="background:#F5E6EA"><div class="sl">年度結餘</div><div class="sv" style="color:#5A3040">${fmt(ti-te)}</div></div></div><h2>每月收支</h2><table><tr><th>月份</th><th>收入</th><th>支出</th><th>結餘</th></tr>${mr}</table><h2>各類支出 vs 預算</h2><table><tr><th>類別</th><th>預算</th><th>實際</th><th>差額</th></tr>${cr}</table></body></html>`;
+  const mr=MN.map((ml,mi)=>{const big=getBigMonthTotals(cY,mi);const inc=ye.filter(e=>e.month===mi&&e.type==='income').reduce((a,e)=>a+e.amt,0)+big.income;const cT=getCatTotals(cY,mi);const exp=Object.values(cT).reduce((a,v)=>a+v,0)+big.expense;if(!inc&&!exp)return'';return`<tr><td>${ml}</td><td style="color:#4A8A76">+${fmt(inc)}</td><td style="color:#C45A7A">-${fmt(exp)}</td><td style="color:${inc-exp>=0?'#4A8A76':'#C45A7A'};font-weight:600">${fmt(inc-exp)}</td></tr>`;}).join('');
+  const reportCatTotals={...ccCatTotals};if(bigExp>0)reportCatTotals['年度重大支出']=(reportCatTotals['年度重大支出']||0)+bigExp;
+  const cr=Object.entries(reportCatTotals).filter(([k,v])=>v>0).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${k}</td><td>${fmt(budgets[k]||0)}</td><td style="font-weight:600">${fmt(v)}</td><td style="color:${v>(budgets[k]||0)?'#C45A7A':'#4A8A76'}">${v>(budgets[k]||0)?'超支 '+fmt(v-(budgets[k]||0)):'剩 '+fmt((budgets[k]||0)-v)}</td></tr>`).join('');
+  const reportIncomeTotals={};ye.filter(e=>e.type==='income').forEach(e=>{const name=incomeSourceOf(e);reportIncomeTotals[name]=(reportIncomeTotals[name]||0)+(Number(e.amt)||0);});bigYear.filter(b=>b.type==='income').forEach(b=>{const name='重大收入 · '+(b.name||'未命名');reportIncomeTotals[name]=(reportIncomeTotals[name]||0)+(Number(b.amt)||0);});
+  const ir=Object.entries(reportIncomeTotals).filter(([k,v])=>v>0).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${k}</td><td style="color:#4A8A76;font-weight:600">+${fmt(v)}</td></tr>`).join('');
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${cY}年度家庭財務報告</title><style>body{font-family:sans-serif;padding:32px;color:#5A3040;max-width:700px;margin:0 auto;background:#FFF8F9}h1{font-size:22px;color:#E8799A}h2{font-size:16px;margin:20px 0 8px;border-bottom:2px solid #F2C4D0;padding-bottom:4px;color:#C45A7A}.sum{display:flex;gap:16px;margin:12px 0}.sb{flex:1;border-radius:12px;padding:12px;text-align:center}.sl{font-size:12px;color:#9A6878}.sv{font-size:18px;font-weight:bold;margin-top:4px}table{width:100%;border-collapse:collapse;font-size:14px}th{background:#E8799A;color:#fff;padding:7px 8px;text-align:left}td{padding:6px 8px;border-bottom:1px solid #F5E6EA}</style></head><body><h1>家庭帳本 ${cY} 年度報告</h1><p style="color:#9A6878;font-size:13px">匯出：${new Date().toLocaleDateString('zh-TW')}</p><div class="sum"><div class="sb" style="background:#E8F4F0"><div class="sl">年度總收入</div><div class="sv" style="color:#4A8A76">+${fmt(ti)}</div></div><div class="sb" style="background:#F9E8ED"><div class="sl">年度總支出</div><div class="sv" style="color:#C45A7A">-${fmt(te)}</div></div><div class="sb" style="background:#F5E6EA"><div class="sl">年度結餘</div><div class="sv" style="color:#5A3040">${fmt(ti-te)}</div></div></div><h2>每月收支</h2><table><tr><th>月份</th><th>收入</th><th>支出</th><th>結餘</th></tr>${mr}</table><h2>收入來源</h2><table><tr><th>收入來源</th><th>全年合計</th></tr>${ir}</table><h2>各類支出 vs 預算</h2><table><tr><th>類別</th><th>預算</th><th>實際</th><th>差額</th></tr>${cr}</table></body></html>`;
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));a.download=cY+'年度財務報告.html';a.click();showToast('已匯出！');
 }
 
