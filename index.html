@@ -527,9 +527,13 @@ body:has(.modal-overlay.show){overflow:hidden;}
   </div>
   <div id="auth-signed-in" style="display:none;">
     <div id="auth-user" class="auth-user"></div>
-    <div class="hint">已開啟自動同步。這台裝置的修改會上傳雲端，其他裝置登入同一帳號後會自動取得。</div>
+    <div class="hint">第一次在一台裝置登入時，請先確認哪一份資料才是最新的。下載雲端前會自動保留這台裝置的復原副本。</div>
     <div id="sync-message" class="sync-state"></div>
-    <div class="mbtns"><button class="btn-cancel" onclick="closeM('m-auth')">關閉</button><button class="btn-del" onclick="logoutAccount()">登出</button><button class="btn-save" onclick="manualCloudSync()">立即同步</button></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;">
+      <button class="btn-del" style="width:100%;" onclick="uploadThisDevice()">上傳這台裝置資料</button>
+      <button class="btn-save" style="width:100%;" onclick="downloadCloudData()">下載雲端資料</button>
+    </div>
+    <div class="mbtns"><button class="btn-cancel" onclick="closeM('m-auth')">關閉</button><button class="btn-del" onclick="logoutAccount()">登出</button></div>
   </div>
 </div></div>
 
@@ -649,6 +653,7 @@ async function pushCloudData(showResult){
   finally{cloudBusy=false;}
 }
 function applyCloudStorage(storage,stamp){
+  localStorage.setItem('hbv4_cloud_recovery_before_download',JSON.stringify({savedAt:new Date().toISOString(),storage:cloudStorageSnapshot()}));
   Object.keys(storage||{}).filter(k=>k.startsWith('hbv4_')&&!k.startsWith('hbv4_cloud_')).forEach(k=>localStorage.setItem(k,storage[k]));
   localStorage.setItem(cloudStampKey(),stamp||new Date().toISOString());
 }
@@ -665,14 +670,33 @@ async function pullCloudData(showResult){
   }catch(err){setCloudMessage('同步失敗：'+(err.message||'請稍後再試'),true);}
   finally{cloudBusy=false;}
 }
-async function manualCloudSync(){await pullCloudData(true);}
+async function checkCloudOnLogin(){
+  if(!cloudClient||!cloudUser)return;
+  const {data,error}=await cloudClient.from('user_data').select('data,updated_at').eq('user_id',cloudUser.id).maybeSingle();
+  if(error){setCloudMessage('無法讀取雲端：'+error.message,true);return;}
+  if(!data){cloudReady=true;await pushCloudData(true);return;}
+  if(localStorage.getItem(cloudStampKey())){cloudReady=true;await pullCloudData(false);return;}
+  cloudReady=false;setCloudMessage('這台裝置尚未建立同步關聯，請選擇要保留「這台裝置」或「雲端」的資料。',true);openAuth();
+}
+async function uploadThisDevice(){
+  if(!cloudUser)return;cloudReady=true;await pushCloudData(true);
+}
+async function downloadCloudData(){
+  if(!cloudClient||!cloudUser||cloudBusy)return;
+  if(!confirm('下載雲端資料會取代這台裝置目前顯示的帳本。系統會先保留復原副本，確定繼續嗎？'))return;
+  cloudBusy=true;setCloudMessage('正在下載雲端資料…');
+  try{
+    const {data,error}=await cloudClient.from('user_data').select('data,updated_at').eq('user_id',cloudUser.id).single();
+    if(error)throw error;cloudReady=true;applyCloudStorage(data.data,data.updated_at);location.reload();
+  }catch(err){setCloudMessage('下載失敗：'+(err.message||'請稍後再試'),true);cloudBusy=false;}
+}
 async function registerAccount(){
   const email=document.getElementById('auth-email').value.trim(),password=document.getElementById('auth-password').value;
   if(!email||password.length<6){document.getElementById('auth-message').textContent='請輸入 Email 與至少 6 個字元的密碼';return;}
   document.getElementById('auth-message').textContent='正在建立帳號…';
   const {data,error}=await cloudClient.auth.signUp({email,password,options:{emailRedirectTo:'https://wqwqwq999888-prog.github.io/family-budget/'}});
   if(error){document.getElementById('auth-message').textContent='註冊失敗：'+error.message;return;}
-  if(data.session){cloudUser=data.user;cloudReady=true;updateAuthUI();await pushCloudData(true);}else document.getElementById('auth-message').textContent='請到信箱點選認證連結，再回來登入。';
+  if(data.session){cloudUser=data.user;updateAuthUI();await checkCloudOnLogin();}else document.getElementById('auth-message').textContent='請到信箱點選認證連結，再回來登入。';
 }
 async function loginAccount(){
   const email=document.getElementById('auth-email').value.trim(),password=document.getElementById('auth-password').value;
@@ -680,15 +704,15 @@ async function loginAccount(){
   document.getElementById('auth-message').textContent='正在登入…';
   const {data,error}=await cloudClient.auth.signInWithPassword({email,password});
   if(error){document.getElementById('auth-message').textContent='登入失敗：'+error.message;return;}
-  cloudUser=data.user;cloudReady=true;updateAuthUI();await pullCloudData(true);
+  cloudUser=data.user;updateAuthUI();await checkCloudOnLogin();
 }
 async function logoutAccount(){if(cloudClient)await cloudClient.auth.signOut();cloudUser=null;cloudReady=false;updateAuthUI();closeM('m-auth');showToast('已登出');}
 async function initCloudSync(){
   if(!cloudClient){document.getElementById('auth-btn').textContent='雲端未連線';return;}
-  const {data}=await cloudClient.auth.getSession();cloudUser=data.session?data.session.user:null;cloudReady=!!cloudUser;updateAuthUI();
-  if(cloudUser)await pullCloudData(false);
-  cloudClient.auth.onAuthStateChange((event,session)=>{cloudUser=session?session.user:null;cloudReady=!!cloudUser;updateAuthUI();});
-  setInterval(()=>{if(cloudUser&&!document.hidden)pullCloudData(false);},15000);
+  const {data}=await cloudClient.auth.getSession();cloudUser=data.session?data.session.user:null;cloudReady=false;updateAuthUI();
+  if(cloudUser)await checkCloudOnLogin();
+  cloudClient.auth.onAuthStateChange((event,session)=>{cloudUser=session?session.user:null;if(!session)cloudReady=false;updateAuthUI();});
+  setInterval(()=>{if(cloudUser&&cloudReady&&!document.hidden)pullCloudData(false);},15000);
 }
 function migrateETFCategory(){
   if(!cats.includes('ETF'))return;
