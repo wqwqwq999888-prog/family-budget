@@ -451,7 +451,11 @@ body:has(.modal-overlay.show){overflow:hidden;}
 
 <div id="m-cc" class="modal-overlay"><div class="modal-box">
   <div class="modal-ttl" id="m-cc-t">新增信用卡帳單</div>
-  <div class="field"><label>信用卡名稱</label><select id="cc-name" onchange="fillCCCarryover()"><option>聯邦信用卡</option><option>玉山信用卡</option><option>台新信用卡</option><option>富邦信用卡</option><option>中國信託信用卡</option></select></div>
+  <div class="field"><label>信用卡名稱</label><select id="cc-name" onchange="handleCCNameChange()"><option>聯邦信用卡</option><option>玉山信用卡</option><option>台新信用卡</option><option>富邦信用卡</option><option>中國信託信用卡</option></select></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+    <div class="field"><label>每月結帳日</label><input id="cc-close-day" type="number" min="1" max="31" placeholder="例：27"/></div>
+    <div class="field"><label>次月繳款到期日</label><input id="cc-due-day" type="number" min="1" max="31" placeholder="例：12"/></div>
+  </div>
   <div class="field"><label>本期新增消費 (NT$)</label><input id="cc-total" type="number" placeholder="0" oninput="syncCCPaidCheck();updateCCPreview()"/></div>
   <div class="field"><label>上期未繳（自動帶入，可修正）</label><input id="cc-carryover" type="number" placeholder="0" oninput="syncCCPaidCheck();updateCCPreview()"/></div>
   <div class="field">
@@ -534,6 +538,14 @@ let savings=ld('hbv4_savings',[]);
 let stocks=ld('hbv4_stocks',[]);
 let bigitems=ld('hbv4_bigitems',[]);
 let ccbills=ld('hbv4_ccbills',[]);
+const DEFAULT_CC_PROFILES={
+  '玉山信用卡':{closeDay:27,dueDay:12},
+  '聯邦信用卡':{closeDay:29,dueDay:13},
+  '台新信用卡':{closeDay:27,dueDay:13},
+  '富邦信用卡':{closeDay:26,dueDay:11},
+  '中國信託信用卡':{closeDay:null,dueDay:null}
+};
+let ccProfiles={...DEFAULT_CC_PROFILES,...ld('hbv4_cc_profiles',{})};
 let cats=ld('hbv4_cats',['小孩學費','美食基金','其他零花錢','信用貸款','其他固定支出','貓咪花費','游先生餐費','孝親費','緊急預備金','生活雜支','存股','水電費','蛋白粉','ETF','其他花費']);
 let autoIncome=ld('hbv4_autoinc',[{id:1,name:'游先生薪資',amt:40000,acct:'現金'},{id:2,name:'蕭小姐薪資',amt:38000,acct:'農會'},{id:3,name:'育兒津貼',amt:11000,acct:'郵局'}]);
 const DEFAULT_INCOME_SOURCES=['游先生','蕭小姐','鬥陣買','育兒津貼'];
@@ -543,7 +555,7 @@ let savingWhereOptions=ld('hbv4_savewhere',['現金','農會','郵局','玉山',
 let wealthMoves=ld('hbv4_wealthmoves',[]);
 let nid=ld('hbv4_nid',1000);
 let eAId=null,eEId=null,eSId=null,eStId=null,eBId=null,eAiId=null,eCCId=null,eWId=null;
-function pa(){sv('hbv4_accts',accts);sv('hbv4_entries',entries);sv('hbv4_budgets',budgets);sv('hbv4_budgethist',budgetHistory);sv('hbv4_savings',savings);sv('hbv4_stocks',stocks);sv('hbv4_nid',nid);sv('hbv4_cats',cats);sv('hbv4_bigitems',bigitems);sv('hbv4_ccbills',ccbills);sv('hbv4_autoinc',autoIncome);sv('hbv4_income_sources',incomeSources);sv('hbv4_savewhere',savingWhereOptions);sv('hbv4_wealthmoves',wealthMoves);}
+function pa(){sv('hbv4_accts',accts);sv('hbv4_entries',entries);sv('hbv4_budgets',budgets);sv('hbv4_budgethist',budgetHistory);sv('hbv4_savings',savings);sv('hbv4_stocks',stocks);sv('hbv4_nid',nid);sv('hbv4_cats',cats);sv('hbv4_bigitems',bigitems);sv('hbv4_ccbills',ccbills);sv('hbv4_cc_profiles',ccProfiles);sv('hbv4_autoinc',autoIncome);sv('hbv4_income_sources',incomeSources);sv('hbv4_savewhere',savingWhereOptions);sv('hbv4_wealthmoves',wealthMoves);}
 function migrateETFCategory(){
   if(!cats.includes('ETF'))return;
   entries.forEach(e=>{if(e.cat==='ETF')e.cat='存股';});
@@ -715,6 +727,10 @@ function ccPayments(cc){
 function ccPaid(cc){return ccPayments(cc).reduce((sum,p)=>sum+p.amt,0);}
 function ccOutstanding(cc){return Math.max(0,ccDue(cc)-ccPaid(cc));}
 function ccStatus(cc){const left=ccOutstanding(cc);if(left<=0)return'已繳清';return ccPaid(cc)>0?'部分繳款':'未繳';}
+function ccProfile(name){return ccProfiles[name]||{closeDay:null,dueDay:null};}
+function ccScheduleText(name){const p=ccProfile(name);return p.closeDay&&p.dueDay?`每月 ${p.closeDay} 日結帳 · 次月 ${p.dueDay} 日繳款到期`:'尚未設定結帳日與繳款到期日';}
+function loadCCProfileFields(name){const p=ccProfile(name);document.getElementById('cc-close-day').value=p.closeDay||'';document.getElementById('cc-due-day').value=p.dueDay||'';}
+function handleCCNameChange(){const name=document.getElementById('cc-name').value;loadCCProfileFields(name);fillCCCarryover();}
 
 function renderFlow(){
   ensureAutoIncome(cY,cM);
@@ -731,7 +747,7 @@ function renderFlow(){
     const rest=ccRestAmount(c);
     const due=ccDue(c),paid=ccPaid(c),left=ccOutstanding(c),status=ccStatus(c),payments=ccPayments(c);
     return `<div class="cc-card" onclick="openCC(${c.id})">
-      <div class="cc-hdr"><div class="cc-name"><i class="ti ti-credit-card" style="font-size:15px;vertical-align:-2px;margin-right:5px;color:#7A5AA8;" aria-hidden="true"></i>${c.name}<div style="font-size:11px;margin-top:3px;color:${left>0?'var(--rose-d)':'var(--mint-d)'};">${status}${payments.length?' · '+payments.length+'筆繳款':''}</div></div><div class="cc-total">應繳 ${fmt(due)}</div></div>
+      <div class="cc-hdr"><div class="cc-name"><i class="ti ti-credit-card" style="font-size:15px;vertical-align:-2px;margin-right:5px;color:#7A5AA8;" aria-hidden="true"></i>${c.name}<div style="font-size:11px;margin-top:3px;color:var(--lav-d);font-weight:500;">${ccScheduleText(c.name)}</div><div style="font-size:11px;margin-top:3px;color:${left>0?'var(--rose-d)':'var(--mint-d)'};">${status}${payments.length?' · '+payments.length+'筆繳款':''}</div></div><div class="cc-total">應繳 ${fmt(due)}</div></div>
       <div class="cc-summary">
         ${ccCarryover(c)>0?`<div class="cc-item"><span>上期未繳</span><span>${fmt(ccCarryover(c))}</span></div>`:''}
         <div class="cc-item"><span>本期新增消費</span><span>${fmt(c.total)}</span></div>
@@ -1102,6 +1118,7 @@ function openCC(id){
     const c=ccbills.find(x=>x.id===id);
     if(c){
       document.getElementById('cc-name').value=c.name;
+      loadCCProfileFields(c.name);
       document.getElementById('cc-total').value=c.total;
       const prev=previousCCBill(c.name);
       document.getElementById('cc-carryover').value=prev?ccOutstanding(prev):ccCarryover(c);
@@ -1113,6 +1130,7 @@ function openCC(id){
     }
   }else{
     document.getElementById('cc-name').selectedIndex=0;
+    loadCCProfileFields(document.getElementById('cc-name').value);
     document.getElementById('cc-total').value='';
     document.getElementById('cc-carryover').value='0';
     ccPaymentsTemp=[];
@@ -1127,6 +1145,8 @@ function openCC(id){
 }
 function saveCC(){
   const name=document.getElementById('cc-name').value.trim();
+  const closeDay=Math.max(0,parseInt(document.getElementById('cc-close-day').value)||0);
+  const dueDay=Math.max(0,parseInt(document.getElementById('cc-due-day').value)||0);
   const total=parseFloat(document.getElementById('cc-total').value)||0;
   const carryover=Math.max(0,parseFloat(document.getElementById('cc-carryover').value)||0);
   const payments=ccPaymentsTemp.filter(p=>(Number(p.amt)||0)>0).map(p=>({date:p.date||'',amt:Math.max(0,Number(p.amt)||0)}));
@@ -1135,7 +1155,9 @@ function saveCC(){
   const restCat=document.getElementById('cc-restcat').value;
   const items=ccItemsTemp.filter(it=>it.label&&it.amt>0);
   if(!name||total+carryover<=0){showToast('請填寫卡片名稱和金額','w');return;}
+  if((closeDay&&closeDay>31)||(dueDay&&dueDay>31)){showToast('結帳日與到期日請填 1～31','w');return;}
   if(paidAmount>total+carryover){showToast('實際繳款不能超過本期應繳總額','w');return;}
+  ccProfiles[name]={closeDay:closeDay||null,dueDay:dueDay||null};
   if(eCCId){const c=ccbills.find(x=>x.id===eCCId);if(c){c.name=name;c.total=total;c.carryover=carryover;c.payments=payments;c.paidAmount=paidAmount;c.paidDate=paidDate;c.paymentTracked=true;c.restCat=restCat;c.items=items;}}
   else ccbills.push({id:nid++,year:cY,month:cM,name,total,carryover,payments,paidAmount,paidDate,paymentTracked:true,restCat,items});
   recalculateTrackedCCCarryovers();pa();closeM('m-cc');renderFlow();renderHome();showToast('已儲存');eCCId=null;
