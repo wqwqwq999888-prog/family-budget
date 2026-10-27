@@ -204,6 +204,9 @@ body:has(.modal-overlay.show){overflow:hidden;}
 .balance-val{font-size:18px;font-weight:600;}
 .balance-val.pos{color:var(--mint-d);}.balance-val.neg{color:var(--rose-d);}
 .balance-desc{font-size:12px;color:var(--text-s);}
+.auth-btn{background:var(--mint);border:1.5px solid var(--mint-d);color:var(--mint-d);border-radius:18px;padding:6px 11px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;}
+.auth-user{font-size:12px;color:var(--text-s);padding:8px 10px;background:var(--mint);border-radius:12px;margin-bottom:12px;word-break:break-all;}
+.sync-state{font-size:12px;color:var(--text-m);text-align:center;margin:8px 0;min-height:18px;}
 @media (min-width:768px){
   body{padding:24px;background:linear-gradient(135deg,#F9E8ED 0%,#E4F0EF 100%);}
   .app{max-width:1040px;border-radius:24px;overflow:hidden;box-shadow:0 12px 40px rgba(90,58,48,.12);min-height:calc(100vh - 48px);}
@@ -237,6 +240,7 @@ body:has(.modal-overlay.show){overflow:hidden;}
 <div class="topbar">
   <div class="logo"><div class="logo-dot"></div><div class="topbar-title" id="page-title">家庭帳本</div></div>
   <div style="display:flex;align-items:center;gap:6px;">
+    <button id="auth-btn" class="auth-btn" onclick="openAuth()">登入</button>
     <span class="yr-tag" id="yr-label">2026</span>
     <div id="mnav" class="month-ctrl">
       <button class="mnbtn" onclick="chM(-1)">‹</button>
@@ -512,11 +516,33 @@ body:has(.modal-overlay.show){overflow:hidden;}
   <div class="mbtns"><button class="btn-cancel" onclick="cancelInlinePrompt()">取消</button><button class="btn-save" onclick="confirmInlinePrompt()">確定</button></div>
 </div></div>
 
+<div id="m-auth" class="modal-overlay"><div class="modal-box">
+  <div class="modal-ttl">帳號與雲端同步</div>
+  <div id="auth-signed-out">
+    <div class="hint" style="margin-bottom:12px;">手機和電腦使用同一組 Email 與密碼，就會同步同一份家庭帳本。</div>
+    <div class="field"><label>Email</label><input id="auth-email" type="email" autocomplete="email" placeholder="name@example.com"/></div>
+    <div class="field"><label>密碼（至少 6 個字元）</label><input id="auth-password" type="password" autocomplete="current-password" placeholder="請輸入密碼"/></div>
+    <div id="auth-message" class="sync-state"></div>
+    <div class="mbtns"><button class="btn-cancel" onclick="closeM('m-auth')">取消</button><button class="btn-del" onclick="registerAccount()">註冊</button><button class="btn-save" onclick="loginAccount()">登入</button></div>
+  </div>
+  <div id="auth-signed-in" style="display:none;">
+    <div id="auth-user" class="auth-user"></div>
+    <div class="hint">已開啟自動同步。這台裝置的修改會上傳雲端，其他裝置登入同一帳號後會自動取得。</div>
+    <div id="sync-message" class="sync-state"></div>
+    <div class="mbtns"><button class="btn-cancel" onclick="closeM('m-auth')">關閉</button><button class="btn-del" onclick="logoutAccount()">登出</button><button class="btn-save" onclick="manualCloudSync()">立即同步</button></div>
+  </div>
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const MN=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
 const PAY=['現金','農會','郵局','玉山','台新','玉山信用卡','台新信用卡','富邦信用卡','聯邦信用卡','中信信用卡'];
 const MEMBERS=['游先生','蕭小姐','哲綸','哲聿'];
 const ENC=['本月所有支出都在預算內，太厲害了！','理財高手！全部類別沒有超支！','本月控制得很好，家庭財務超健康！','預算執行完美，繼續保持！'];
+const SUPABASE_URL='https://xsjmlekopbdcuegbarlu.supabase.co';
+const SUPABASE_KEY='sb_publishable_EJct14bLpnNHMKs8hi3uDg_td2_DwJu';
+const cloudClient=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
+let cloudUser=null,cloudPushTimer=null,cloudBusy=false,cloudReady=false;
 const now=new Date();
 let cM=now.getMonth(),cY=now.getFullYear();
 try{const last=JSON.parse(localStorage.getItem('hbv4_lastview'));if(last&&Number.isInteger(last.month)&&Number.isInteger(last.year)){cM=last.month;cY=last.year;}}catch(e){}
@@ -581,7 +607,89 @@ let savingWhereOptions=ld('hbv4_savewhere',['現金','農會','郵局','玉山',
 let wealthMoves=ld('hbv4_wealthmoves',[]);
 let nid=ld('hbv4_nid',1000);
 let eAId=null,eEId=null,eSId=null,eStId=null,eBId=null,eAiId=null,eCCId=null,eWId=null;
-function pa(){sv('hbv4_accts',accts);sv('hbv4_entries',entries);sv('hbv4_budgets',budgets);sv('hbv4_budgethist',budgetHistory);sv('hbv4_savings',savings);sv('hbv4_stocks',stocks);sv('hbv4_nid',nid);sv('hbv4_cats',cats);sv('hbv4_bigitems',bigitems);sv('hbv4_ccbills',ccbills);sv('hbv4_cc_profiles',ccProfiles);sv('hbv4_autoinc',autoIncome);sv('hbv4_income_sources',incomeSources);sv('hbv4_savewhere',savingWhereOptions);sv('hbv4_wealthmoves',wealthMoves);}
+function pa(){sv('hbv4_accts',accts);sv('hbv4_entries',entries);sv('hbv4_budgets',budgets);sv('hbv4_budgethist',budgetHistory);sv('hbv4_savings',savings);sv('hbv4_stocks',stocks);sv('hbv4_nid',nid);sv('hbv4_cats',cats);sv('hbv4_bigitems',bigitems);sv('hbv4_ccbills',ccbills);sv('hbv4_cc_profiles',ccProfiles);sv('hbv4_autoinc',autoIncome);sv('hbv4_income_sources',incomeSources);sv('hbv4_savewhere',savingWhereOptions);sv('hbv4_wealthmoves',wealthMoves);scheduleCloudPush();}
+
+function cloudStorageSnapshot(){
+  const storage={};
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k&&k.startsWith('hbv4_')&&!k.startsWith('hbv4_cloud_'))storage[k]=localStorage.getItem(k);
+  }
+  return storage;
+}
+function cloudStampKey(){return 'hbv4_cloud_updated_at_'+(cloudUser?cloudUser.id:'none');}
+function setCloudMessage(msg,isError){
+  const el=document.getElementById('sync-message')||document.getElementById('auth-message');
+  if(el){el.textContent=msg||'';el.style.color=isError?'var(--rose-d)':'var(--mint-d)';}
+}
+function updateAuthUI(){
+  const btn=document.getElementById('auth-btn');
+  if(!btn)return;
+  btn.textContent=cloudUser?'已同步':'登入';
+  btn.style.background=cloudUser?'var(--mint)':'var(--rose-l)';
+  document.getElementById('auth-signed-out').style.display=cloudUser?'none':'block';
+  document.getElementById('auth-signed-in').style.display=cloudUser?'block':'none';
+  document.getElementById('auth-user').textContent=cloudUser?'已登入：'+cloudUser.email:'';
+}
+function openAuth(){updateAuthUI();document.getElementById('m-auth').classList.add('show');}
+function scheduleCloudPush(){
+  if(!cloudReady||!cloudUser||cloudBusy)return;
+  clearTimeout(cloudPushTimer);cloudPushTimer=setTimeout(()=>pushCloudData(false),800);
+}
+async function pushCloudData(showResult){
+  if(!cloudClient||!cloudUser||cloudBusy)return;
+  cloudBusy=true;if(showResult)setCloudMessage('正在上傳…');
+  try{
+    const stamp=new Date().toISOString();
+    const {error}=await cloudClient.from('user_data').upsert({user_id:cloudUser.id,data:cloudStorageSnapshot(),updated_at:stamp},{onConflict:'user_id'});
+    if(error)throw error;
+    localStorage.setItem(cloudStampKey(),stamp);
+    if(showResult)setCloudMessage('已同步到雲端');
+  }catch(err){setCloudMessage('同步失敗：'+(err.message||'請稍後再試'),true);}
+  finally{cloudBusy=false;}
+}
+function applyCloudStorage(storage,stamp){
+  Object.keys(storage||{}).filter(k=>k.startsWith('hbv4_')&&!k.startsWith('hbv4_cloud_')).forEach(k=>localStorage.setItem(k,storage[k]));
+  localStorage.setItem(cloudStampKey(),stamp||new Date().toISOString());
+}
+async function pullCloudData(showResult){
+  if(!cloudClient||!cloudUser||cloudBusy)return;
+  cloudBusy=true;if(showResult)setCloudMessage('正在取得最新資料…');
+  try{
+    const {data,error}=await cloudClient.from('user_data').select('data,updated_at').eq('user_id',cloudUser.id).maybeSingle();
+    if(error)throw error;
+    if(!data){cloudBusy=false;await pushCloudData(showResult);return;}
+    const localStamp=localStorage.getItem(cloudStampKey())||'';
+    if((data.updated_at||'')>localStamp){applyCloudStorage(data.data,data.updated_at);location.reload();return;}
+    if(showResult)setCloudMessage('目前已是最新資料');
+  }catch(err){setCloudMessage('同步失敗：'+(err.message||'請稍後再試'),true);}
+  finally{cloudBusy=false;}
+}
+async function manualCloudSync(){await pullCloudData(true);}
+async function registerAccount(){
+  const email=document.getElementById('auth-email').value.trim(),password=document.getElementById('auth-password').value;
+  if(!email||password.length<6){document.getElementById('auth-message').textContent='請輸入 Email 與至少 6 個字元的密碼';return;}
+  document.getElementById('auth-message').textContent='正在建立帳號…';
+  const {data,error}=await cloudClient.auth.signUp({email,password,options:{emailRedirectTo:'https://wqwqwq999888-prog.github.io/family-budget/'}});
+  if(error){document.getElementById('auth-message').textContent='註冊失敗：'+error.message;return;}
+  if(data.session){cloudUser=data.user;cloudReady=true;updateAuthUI();await pushCloudData(true);}else document.getElementById('auth-message').textContent='請到信箱點選認證連結，再回來登入。';
+}
+async function loginAccount(){
+  const email=document.getElementById('auth-email').value.trim(),password=document.getElementById('auth-password').value;
+  if(!email||!password){document.getElementById('auth-message').textContent='請輸入 Email 與密碼';return;}
+  document.getElementById('auth-message').textContent='正在登入…';
+  const {data,error}=await cloudClient.auth.signInWithPassword({email,password});
+  if(error){document.getElementById('auth-message').textContent='登入失敗：'+error.message;return;}
+  cloudUser=data.user;cloudReady=true;updateAuthUI();await pullCloudData(true);
+}
+async function logoutAccount(){if(cloudClient)await cloudClient.auth.signOut();cloudUser=null;cloudReady=false;updateAuthUI();closeM('m-auth');showToast('已登出');}
+async function initCloudSync(){
+  if(!cloudClient){document.getElementById('auth-btn').textContent='雲端未連線';return;}
+  const {data}=await cloudClient.auth.getSession();cloudUser=data.session?data.session.user:null;cloudReady=!!cloudUser;updateAuthUI();
+  if(cloudUser)await pullCloudData(false);
+  cloudClient.auth.onAuthStateChange((event,session)=>{cloudUser=session?session.user:null;cloudReady=!!cloudUser;updateAuthUI();});
+  setInterval(()=>{if(cloudUser&&!document.hidden)pullCloudData(false);},15000);
+}
 function migrateETFCategory(){
   if(!cats.includes('ETF'))return;
   entries.forEach(e=>{if(e.cat==='ETF')e.cat='存股';});
@@ -1254,6 +1362,7 @@ migrateETFCategory();
 migrateSavingInitialAmounts();
 ensureAutoIncome(cY,cM);
 renderAll();
+initCloudSync();
 </script>
 </body>
 </html>
