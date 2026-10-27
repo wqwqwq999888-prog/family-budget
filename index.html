@@ -527,8 +527,9 @@ body:has(.modal-overlay.show){overflow:hidden;}
   </div>
   <div id="auth-signed-in" style="display:none;">
     <div id="auth-user" class="auth-user"></div>
-    <div class="hint">第一次在一台裝置登入時，請先確認哪一份資料才是最新的。下載雲端前會自動保留這台裝置的復原副本。</div>
+    <div class="hint">新註冊的帳戶會從空白帳本開始。只有要把這台裝置的既有帳本存到雲端時，才使用「上傳這台裝置資料」。下載或建立空白帳本前，會先保留裝置復原副本。</div>
     <div id="sync-message" class="sync-state"></div>
+    <button class="btn-cancel" id="create-blank-cloud" style="width:100%;margin-top:12px;display:none;" onclick="createBlankCloudAccount()">建立空白帳本</button>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;">
       <button class="btn-del" style="width:100%;" onclick="uploadThisDevice()">上傳這台裝置資料</button>
       <button class="btn-save" style="width:100%;" onclick="downloadCloudData()">下載雲端資料</button>
@@ -621,6 +622,17 @@ function cloudStorageSnapshot(){
   }
   return storage;
 }
+function blankCloudStorage(){
+  const zeroAccounts=['農會','玉山','郵局','台新','Line Pay','iPass'].map((name,i)=>({id:i+1,name,bal:0}));
+  const defaultCats=['小孩學費','美食基金','其他零花錢','信用貸款','其他固定支出','貓咪花費','游先生餐費','孝親費','緊急預備金','生活雜支','存股','水電費','蛋白粉','其他花費'];
+  return {
+    hbv4_accts:JSON.stringify(zeroAccounts),hbv4_entries:'[]',hbv4_budgets:'{}',hbv4_budgethist:'[]',
+    hbv4_savings:'[]',hbv4_stocks:'[]',hbv4_bigitems:'[]',hbv4_ccbills:'[]',hbv4_cc_profiles:'{}',
+    hbv4_cats:JSON.stringify(defaultCats),hbv4_autoinc:'[]',hbv4_income_sources:JSON.stringify(DEFAULT_INCOME_SOURCES),
+    hbv4_income_sources_cleaned:'true',hbv4_savewhere:JSON.stringify(['現金','農會','郵局','玉山','台新']),
+    hbv4_wealthmoves:'[]',hbv4_nid:'1000',hbv4_lastview:JSON.stringify({month:now.getMonth(),year:now.getFullYear()})
+  };
+}
 function cloudStampKey(){return 'hbv4_cloud_updated_at_'+(cloudUser?cloudUser.id:'none');}
 function setCloudMessage(msg,isError){
   const el=document.getElementById('sync-message')||document.getElementById('auth-message');
@@ -635,6 +647,7 @@ function updateAuthUI(){
   document.getElementById('auth-signed-in').style.display=cloudUser?'block':'none';
   document.getElementById('auth-user').textContent=cloudUser?'已登入：'+cloudUser.email:'';
 }
+function showBlankCloudButton(show){const el=document.getElementById('create-blank-cloud');if(el)el.style.display=show?'block':'none';}
 function openAuth(){updateAuthUI();document.getElementById('m-auth').classList.add('show');}
 function scheduleCloudPush(){
   if(!cloudReady||!cloudUser||cloudBusy)return;
@@ -674,12 +687,26 @@ async function checkCloudOnLogin(){
   if(!cloudClient||!cloudUser)return;
   const {data,error}=await cloudClient.from('user_data').select('data,updated_at').eq('user_id',cloudUser.id).maybeSingle();
   if(error){setCloudMessage('無法讀取雲端：'+error.message,true);return;}
-  if(!data){cloudReady=true;await pushCloudData(true);return;}
+  if(!data){
+    cloudReady=false;showBlankCloudButton(true);
+    setCloudMessage('這個帳號還沒有雲端帳本。新帳號請建立空白帳本；只有確定要保留這台裝置的舊資料時，才選擇上傳。',true);openAuth();return;
+  }
+  showBlankCloudButton(false);
   if(localStorage.getItem(cloudStampKey())){cloudReady=true;await pullCloudData(false);return;}
   cloudReady=false;setCloudMessage('這台裝置尚未建立同步關聯，請選擇要保留「這台裝置」或「雲端」的資料。',true);openAuth();
 }
+async function createBlankCloudAccount(){
+  if(!cloudClient||!cloudUser||cloudBusy)return;
+  cloudBusy=true;setCloudMessage('正在建立空白帳本…');
+  try{
+    const stamp=new Date().toISOString(),storage=blankCloudStorage();
+    const {error}=await cloudClient.from('user_data').upsert({user_id:cloudUser.id,data:storage,updated_at:stamp},{onConflict:'user_id'});
+    if(error)throw error;
+    cloudReady=true;showBlankCloudButton(false);applyCloudStorage(storage,stamp);location.reload();
+  }catch(err){setCloudMessage('建立失敗：'+(err.message||'請稍後再試'),true);cloudBusy=false;}
+}
 async function uploadThisDevice(){
-  if(!cloudUser)return;cloudReady=true;await pushCloudData(true);
+  if(!cloudUser)return;showBlankCloudButton(false);cloudReady=true;await pushCloudData(true);
 }
 async function downloadCloudData(){
   if(!cloudClient||!cloudUser||cloudBusy)return;
@@ -696,7 +723,12 @@ async function registerAccount(){
   document.getElementById('auth-message').textContent='正在建立帳號…';
   const {data,error}=await cloudClient.auth.signUp({email,password,options:{emailRedirectTo:'https://wqwqwq999888-prog.github.io/family-budget/'}});
   if(error){document.getElementById('auth-message').textContent='註冊失敗：'+error.message;return;}
-  if(data.session){cloudUser=data.user;updateAuthUI();await checkCloudOnLogin();}else document.getElementById('auth-message').textContent='請到信箱點選認證連結，再回來登入。';
+  localStorage.setItem('hbv4_cloud_pending_new_email',email.toLowerCase());
+  if(data.session){
+    cloudUser=data.user;updateAuthUI();
+    const {data:existing}=await cloudClient.from('user_data').select('user_id').eq('user_id',cloudUser.id).maybeSingle();
+    if(existing)await checkCloudOnLogin();else await createBlankCloudAccount();
+  }else document.getElementById('auth-message').textContent='請到信箱點選認證連結，再回來登入。首次登入後會建立空白帳本。';
 }
 async function loginAccount(){
   const email=document.getElementById('auth-email').value.trim(),password=document.getElementById('auth-password').value;
@@ -704,7 +736,13 @@ async function loginAccount(){
   document.getElementById('auth-message').textContent='正在登入…';
   const {data,error}=await cloudClient.auth.signInWithPassword({email,password});
   if(error){document.getElementById('auth-message').textContent='登入失敗：'+error.message;return;}
-  cloudUser=data.user;updateAuthUI();await checkCloudOnLogin();
+  cloudUser=data.user;updateAuthUI();
+  const pending=localStorage.getItem('hbv4_cloud_pending_new_email');
+  const {data:existing}=await cloudClient.from('user_data').select('user_id').eq('user_id',cloudUser.id).maybeSingle();
+  if(pending&&pending===String(cloudUser.email||'').toLowerCase()&&!existing){
+    localStorage.removeItem('hbv4_cloud_pending_new_email');await createBlankCloudAccount();return;
+  }
+  await checkCloudOnLogin();
 }
 async function logoutAccount(){if(cloudClient)await cloudClient.auth.signOut();cloudUser=null;cloudReady=false;updateAuthUI();closeM('m-auth');showToast('已登出');}
 async function initCloudSync(){
