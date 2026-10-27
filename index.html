@@ -361,7 +361,7 @@ body:has(.modal-overlay.show){overflow:hidden;}
 
 <div id="m-income" class="modal-overlay"><div class="modal-box">
   <div class="modal-ttl" id="m-income-t">新增收入</div>
-  <div class="field"><label>收入來源</label><div style="display:flex;gap:6px;"><select id="i-source" style="flex:1;"></select><button type="button" class="cc-newcat-btn" onclick="promptNewIncomeSource()" title="新增收入來源">+</button></div></div>
+  <div class="field"><label>收入來源</label><div style="display:flex;gap:6px;"><select id="i-source" style="flex:1;"></select><button type="button" class="cc-newcat-btn" onclick="promptNewIncomeSource()" title="新增收入來源">+</button><button type="button" class="cc-newcat-btn" onclick="removeSelectedIncomeSource()" title="從選單移除這個收入來源" style="color:var(--rose-d);border-color:var(--rose);background:var(--rose-l);">−</button></div><div style="font-size:12px;color:var(--text-m);margin-top:5px;">「−」只會從下拉選單移除，不會刪除過去的收入記錄。</div></div>
   <div class="field"><label>金額 (NT$)</label><input id="i-amt" type="number" placeholder="0"/></div>
   <div class="field"><label>存入帳戶</label><select id="i-pay"></select></div>
   <div class="field"><label>收入說明／備註（選填）</label><input id="i-note" placeholder="例：紅利、獎勵金、9/16 訂單收入"/></div>
@@ -610,7 +610,7 @@ function catIcon(name){
 }
 function pct(a,b){return b?Math.min(200,Math.round(a/b*100)):0;}
 function incomeSourceOf(item){
-  if(item&&item.source)return incomeSources.includes(item.source)?item.source:'其他收入';
+  if(item&&item.source)return item.source;
   const name=String(item&&item.name||'').trim();
   if(name.includes('游先生'))return'游先生';
   if(name.includes('蕭小姐'))return'蕭小姐';
@@ -626,6 +626,12 @@ function promptNewIncomeSource(){
   openInlinePrompt('新增收入來源','例：租金收入',function(val){
     if(!val||!val.trim())return;const source=val.trim();if(!incomeSources.includes(source))incomeSources.push(source);pa();refreshIncomeSourceOptions(source);showToast('已新增收入來源「'+source+'」');
   });
+}
+function removeSelectedIncomeSource(){
+  const el=document.getElementById('i-source'),source=el.value;
+  if(!source)return;
+  if(incomeSources.length<=1){showToast('至少要保留一個收入來源','w');return;}
+  incomeSources=incomeSources.filter(s=>s!==source);pa();refreshIncomeSourceOptions(incomeSources[0]);showToast('已從選單移除「'+source+'」');
 }
 function closeM(id){document.getElementById(id).classList.remove('show');}
 function showToast(msg,t){const el=document.getElementById('toast');el.textContent=msg;el.style.display='block';el.style.borderColor=t==='w'?'var(--rose)':'var(--mint-d)';el.style.color=t==='w'?'var(--rose-d)':'var(--mint-d)';setTimeout(()=>{el.style.display='none';},2400);}
@@ -681,9 +687,10 @@ function getBigMonthTotals(year,month){
 
 function renderHome(){
   const tot=accts.reduce((a,x)=>a+x.bal,0);
-  const inc=entries.filter(e=>e.year===cY&&e.month===cM&&e.type==='income').reduce((a,e)=>a+e.amt,0);
+  const bigMonth=getBigMonthTotals(cY,cM);
+  const inc=entries.filter(e=>e.year===cY&&e.month===cM&&e.type==='income').reduce((a,e)=>a+e.amt,0)+bigMonth.income;
   const cT=getCatTotals(cY,cM);
-  const exp=Object.values(cT).reduce((a,v)=>a+v,0);
+  const exp=Object.values(cT).reduce((a,v)=>a+v,0)+bigMonth.expense;
   const monthSaving=wealthMoves.filter(w=>{const d=new Date((w.date||'')+'T00:00:00');return d.getFullYear()===cY&&d.getMonth()===cM;}).reduce((a,w)=>a+w.amt,0);
   const wealthAssets=getWealthTotals().total;
   document.getElementById('h-cash').textContent=fmt(tot);
@@ -736,12 +743,18 @@ function renderFlow(){
   ensureAutoIncome(cY,cM);
   recalculateTrackedCCCarryovers();
   const inc=entries.filter(e=>e.year===cY&&e.month===cM&&e.type==='income');
+  const prefix=cY+'-'+String(cM+1).padStart(2,'0')+'-';
+  const bigMonthItems=bigitems.filter(b=>(b.date||'').startsWith(prefix));
+  const bigIncome=bigMonthItems.filter(b=>b.type==='income');
+  const bigExpense=bigMonthItems.filter(b=>b.type==='expense');
   const ccThisMonth=ccbills.filter(c=>c.year===cY&&c.month===cM);
   const cT=getCatTotals(cY,cM);
-  const ti=inc.reduce((a,e)=>a+e.amt,0);
-  const te=Object.values(cT).reduce((a,v)=>a+v,0);
+  const ti=inc.reduce((a,e)=>a+e.amt,0)+bigIncome.reduce((a,b)=>a+(Number(b.amt)||0),0);
+  const te=Object.values(cT).reduce((a,v)=>a+v,0)+bigExpense.reduce((a,b)=>a+(Number(b.amt)||0),0);
   document.getElementById('flow-strip').innerHTML=`<div class="ss"><div class="ss-l">收入</div><div class="ss-v pos">+${fmt(ti)}</div></div><div class="ss"><div class="ss-l">支出</div><div class="ss-v neg">-${fmt(te)}</div></div><div class="ss"><div class="ss-l">結餘</div><div class="ss-v nu">${fmt(ti-te)}</div></div>`;
-  document.getElementById('inc-list').innerHTML=inc.length?inc.map(e=>`<div class="entry-row"><div class="eico inc">↓</div><div class="einfo"><div class="ename">${incomeSourceOf(e)}${e._auto?'<span style="font-size:10px;color:var(--mint-d);margin-left:5px;">固定</span>':''}</div><div class="esub">${e.acct}${e.note?' · '+e.note:''}</div></div><div class="eamt inc">+${fmt(e.amt)}</div><button class="iedit" onclick="openEntry(${e.id},'income')">✎</button></div>`).join(''):`<div class="empty">尚無收入記錄</div>`;
+  const ordinaryIncomeRows=inc.map(e=>`<div class="entry-row"><div class="eico inc">↓</div><div class="einfo"><div class="ename">${incomeSourceOf(e)}${e._auto?'<span style="font-size:10px;color:var(--mint-d);margin-left:5px;">固定</span>':''}</div><div class="esub">${e.acct}${e.note?' · '+e.note:''}</div></div><div class="eamt inc">+${fmt(e.amt)}</div><button class="iedit" onclick="openEntry(${e.id},'income')">✎</button></div>`);
+  const bigIncomeRows=bigIncome.map(b=>`<div class="entry-row"><div class="eico inc">↑</div><div class="einfo"><div class="ename">${b.name}<span style="font-size:10px;color:var(--lav-d);margin-left:5px;">重大收入</span></div><div class="esub">${b.date||''}${b.note?' · '+b.note:''}</div></div><div class="eamt inc">+${fmt(b.amt)}</div><button class="iedit" onclick="openBig(${b.id})">✎</button></div>`);
+  document.getElementById('inc-list').innerHTML=(ordinaryIncomeRows.length||bigIncomeRows.length)?ordinaryIncomeRows.concat(bigIncomeRows).join(''):`<div class="empty">尚無收入記錄</div>`;
 
   document.getElementById('cc-list').innerHTML=ccThisMonth.length?ccThisMonth.map(c=>{
     const rest=ccRestAmount(c);
