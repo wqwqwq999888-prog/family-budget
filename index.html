@@ -204,6 +204,32 @@ body:has(.modal-overlay.show){overflow:hidden;}
 .balance-val{font-size:18px;font-weight:600;}
 .balance-val.pos{color:var(--mint-d);}.balance-val.neg{color:var(--rose-d);}
 .balance-desc{font-size:12px;color:var(--text-s);}
+@media (min-width:768px){
+  body{padding:24px;background:linear-gradient(135deg,#F9E8ED 0%,#E4F0EF 100%);}
+  .app{max-width:1040px;border-radius:24px;overflow:hidden;box-shadow:0 12px 40px rgba(90,58,48,.12);min-height:calc(100vh - 48px);}
+  .topbar{padding:18px 28px;}
+  .topbar-title{font-size:20px;}
+  .yr-tag,.mlabel{font-size:16px;}
+  .home-pg{padding-bottom:56px;}
+  .pg{padding:24px 30px 56px;}
+  .hero-strip{margin:24px 30px 18px;padding:28px 32px;}
+  .hero-val{font-size:36px;}
+  .quick-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:0 30px;margin-top:14px;}
+  .quick-btn{padding:15px 10px;font-size:14px;}
+  .month-sum-strip,.grid2,.grid3{padding-left:30px;padding-right:30px;gap:12px;}
+  .grid2{grid-template-columns:repeat(3,minmax(0,1fr));}
+  .mini-card{padding:20px;}
+  .sec-title{font-size:16px;}
+  .btn-add{font-size:14px;padding:8px 18px;}
+  .entry-row,.budget-card,.saving-card,.stk-card,.cc-card,.big-card{padding-left:18px;padding-right:18px;}
+  .modal-overlay{align-items:center;padding:28px;}
+  .modal-box{max-width:720px;border-radius:24px;padding-left:28px;padding-right:28px;max-height:86vh;box-shadow:0 18px 55px rgba(60,35,35,.25);}
+  .modal-ttl{font-size:20px;padding-top:24px;}
+  .field label{font-size:13px;}
+  .field input,.field select{font-size:15px;padding:12px 14px;}
+  .btn-cancel,.btn-save,.btn-del{font-size:15px;}
+  .quick-btn:hover,.mini-card:hover,.acct-card:hover,.sc-btn:hover,.iedit:hover{filter:brightness(.98);border-color:var(--rose);}
+}
 </style>
 </head>
 <body>
